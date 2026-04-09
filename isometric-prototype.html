@@ -1,0 +1,1133 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>이소메트릭 평면도 프로토타입</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap');
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: 'Noto Sans KR', sans-serif;
+  background: #1a1a2e;
+  color: #e0e0e0;
+  overflow: hidden;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+#toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #16213e;
+  border-bottom: 1px solid #0f3460;
+  flex-shrink: 0;
+  overflow-x: auto;
+  z-index: 10;
+}
+
+#toolbar h1 {
+  font-size: 14px;
+  font-weight: 500;
+  color: #e94560;
+  white-space: nowrap;
+  margin-right: 8px;
+}
+
+.tool-btn {
+  padding: 6px 12px;
+  border: 1px solid #0f3460;
+  background: #16213e;
+  color: #a0a0b8;
+  border-radius: 6px;
+  font-size: 12px;
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s;
+}
+
+.tool-btn:hover { background: #1a1a40; color: #fff; }
+.tool-btn.active { background: #e94560; color: #fff; border-color: #e94560; }
+
+#canvas-wrap {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+}
+
+canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: grab;
+}
+
+canvas:active { cursor: grabbing; }
+
+#material-panel {
+  position: fixed;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 260px;
+  background: #16213e;
+  border-left: 1px solid #0f3460;
+  transform: translateX(100%);
+  transition: transform 0.3s ease;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+}
+
+#material-panel.open { transform: translateX(0); }
+
+#material-panel .panel-header {
+  padding: 12px 16px;
+  border-bottom: 1px solid #0f3460;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+#material-panel .panel-header h2 {
+  font-size: 14px;
+  font-weight: 500;
+  color: #e94560;
+}
+
+#material-panel .close-btn {
+  background: none;
+  border: none;
+  color: #a0a0b8;
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.material-category {
+  padding: 8px 16px;
+  font-size: 11px;
+  color: #a0a0b8;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  border-bottom: 1px solid #0f3460;
+  background: #111a30;
+}
+
+.material-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  padding: 8px 12px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.mat-item {
+  aspect-ratio: 1;
+  border-radius: 6px;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: all 0.2s;
+  position: relative;
+  overflow: hidden;
+}
+
+.mat-item:hover { border-color: #e94560; transform: scale(1.05); }
+.mat-item.selected { border-color: #e94560; box-shadow: 0 0 8px rgba(233,69,96,0.4); }
+
+.mat-item .mat-label {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 2px 4px;
+  background: rgba(0,0,0,0.7);
+  font-size: 9px;
+  text-align: center;
+  color: #ccc;
+}
+
+#info-bar {
+  padding: 6px 12px;
+  background: #111a30;
+  border-top: 1px solid #0f3460;
+  font-size: 11px;
+  color: #a0a0b8;
+  display: flex;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+
+#export-btn {
+  padding: 6px 16px;
+  background: #e94560;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  font-family: inherit;
+  cursor: pointer;
+  margin-left: auto;
+}
+</style>
+</head>
+<body>
+
+<div id="toolbar">
+  <h1>ISO Floor Plan</h1>
+  <button class="tool-btn active" data-mode="select">선택</button>
+  <button class="tool-btn" data-mode="rotate">회전</button>
+  <button class="tool-btn" data-mode="zoom-in">확대</button>
+  <button class="tool-btn" data-mode="zoom-out">축소</button>
+  <button class="tool-btn" data-mode="reset">리셋</button>
+  <button id="export-btn">PNG 저장</button>
+</div>
+
+<div id="canvas-wrap">
+  <canvas id="c"></canvas>
+</div>
+
+<div id="material-panel">
+  <div class="panel-header">
+    <h2 id="panel-title">마감재 선택</h2>
+    <button class="close-btn" onclick="closePanel()">&times;</button>
+  </div>
+  <div class="material-category" id="cat-label">바닥</div>
+  <div class="material-grid" id="mat-grid"></div>
+</div>
+
+<div id="info-bar">
+  <span id="info-text">영역을 클릭하여 마감재를 변경하세요</span>
+  <span id="zoom-info">100%</span>
+</div>
+
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+let W, H, dpr;
+
+// Camera
+let cam = { x: 0, y: 0, zoom: 1 };
+let drag = { active: false, sx: 0, sy: 0, cx: 0, cy: 0 };
+let mode = 'select';
+let rotationAngle = 0;
+
+// Materials database
+const MATERIALS = {
+  floor: [
+    { id: 'f1', name: '포세린 타일', color: '#D4C5A9', pattern: 'tile', tileSize: 30 },
+    { id: 'f2', name: '원목 마루', color: '#B8956A', pattern: 'wood', tileSize: 40 },
+    { id: 'f3', name: '대리석', color: '#E8E0D0', pattern: 'marble', tileSize: 50 },
+    { id: 'f4', name: '폴리싱 타일', color: '#C8B898', pattern: 'tile', tileSize: 25 },
+    { id: 'f5', name: '헤링본 마루', color: '#A07850', pattern: 'herringbone', tileSize: 20 },
+    { id: 'f6', name: '콘크리트', color: '#A8A8A0', pattern: 'concrete', tileSize: 60 },
+    { id: 'f7', name: '데코타일', color: '#D0C0A0', pattern: 'tile', tileSize: 20 },
+    { id: 'f8', name: '강마루', color: '#C8A878', pattern: 'wood', tileSize: 35 },
+    { id: 'f9', name: '테라조', color: '#D8D0C0', pattern: 'terrazzo', tileSize: 40 },
+  ],
+  wall: [
+    { id: 'w1', name: '화이트 페인트', color: '#F0EDE8', pattern: 'solid' },
+    { id: 'w2', name: '라이트 그레이', color: '#D8D5D0', pattern: 'solid' },
+    { id: 'w3', name: '베이지', color: '#E8DFD0', pattern: 'solid' },
+    { id: 'w4', name: '서브웨이 타일', color: '#F0F0E8', pattern: 'subway', tileSize: 15 },
+    { id: 'w5', name: '벽돌', color: '#C07050', pattern: 'brick', tileSize: 12 },
+    { id: 'w6', name: '우드 패널', color: '#B89070', pattern: 'wood', tileSize: 20 },
+    { id: 'w7', name: '민트', color: '#C8E0D8', pattern: 'solid' },
+    { id: 'w8', name: '네이비', color: '#2C3E6B', pattern: 'solid' },
+    { id: 'w9', name: '시멘트', color: '#B0ADA8', pattern: 'concrete', tileSize: 30 },
+  ],
+  baseboard: [
+    { id: 'b1', name: '화이트 PVC', color: '#F0EDE8', pattern: 'solid' },
+    { id: 'b2', name: '오크 우드', color: '#A08060', pattern: 'solid' },
+    { id: 'b3', name: '월넛', color: '#6B4C3B', pattern: 'solid' },
+    { id: 'b4', name: '알루미늄', color: '#C0C0C0', pattern: 'solid' },
+    { id: 'b5', name: '블랙', color: '#3A3A3A', pattern: 'solid' },
+    { id: 'b6', name: '그레이', color: '#909090', pattern: 'solid' },
+  ],
+  ceiling: [
+    { id: 'c1', name: '화이트', color: '#FAFAF5', pattern: 'solid' },
+    { id: 'c2', name: '아이보리', color: '#F5F0E0', pattern: 'solid' },
+    { id: 'c3', name: '라이트 그레이', color: '#E8E8E0', pattern: 'solid' },
+  ]
+};
+
+// Room definitions (2D coordinates in grid units, will be converted to isometric)
+// Based on the uploaded image layout
+const rooms = [
+  {
+    id: 'living',
+    name: '거실',
+    points: [{x:0,y:0},{x:8,y:0},{x:8,y:7},{x:0,y:7}],
+    floor: MATERIALS.floor[0],
+    wallMat: MATERIALS.wall[0],
+    baseboard: MATERIALS.baseboard[0],
+    ceiling: MATERIALS.ceiling[0],
+    wallHeight: 3,
+  },
+  {
+    id: 'kitchen',
+    name: '주방/다이닝',
+    points: [{x:8,y:0},{x:14,y:0},{x:14,y:7},{x:8,y:7}],
+    floor: MATERIALS.floor[3],
+    wallMat: MATERIALS.wall[0],
+    baseboard: MATERIALS.baseboard[0],
+    ceiling: MATERIALS.ceiling[0],
+    wallHeight: 3,
+  },
+  {
+    id: 'bedroom1',
+    name: '침실 1',
+    points: [{x:0,y:7},{x:6,y:7},{x:6,y:13},{x:0,y:13}],
+    floor: MATERIALS.floor[1],
+    wallMat: MATERIALS.wall[2],
+    baseboard: MATERIALS.baseboard[1],
+    ceiling: MATERIALS.ceiling[0],
+    wallHeight: 3,
+  },
+  {
+    id: 'bedroom2',
+    name: '침실 2',
+    points: [{x:8,y:7},{x:14,y:7},{x:14,y:12},{x:8,y:12}],
+    floor: MATERIALS.floor[1],
+    wallMat: MATERIALS.wall[0],
+    baseboard: MATERIALS.baseboard[1],
+    ceiling: MATERIALS.ceiling[0],
+    wallHeight: 3,
+  },
+  {
+    id: 'bathroom',
+    name: '욕실',
+    points: [{x:6,y:7},{x:8,y:7},{x:8,y:10},{x:6,y:10}],
+    floor: MATERIALS.floor[3],
+    wallMat: MATERIALS.wall[3],
+    baseboard: MATERIALS.baseboard[0],
+    ceiling: MATERIALS.ceiling[0],
+    wallHeight: 3,
+  },
+  {
+    id: 'entrance',
+    name: '현관',
+    points: [{x:6,y:10},{x:8,y:10},{x:8,y:13},{x:6,y:13}],
+    floor: MATERIALS.floor[3],
+    wallMat: MATERIALS.wall[0],
+    baseboard: MATERIALS.baseboard[0],
+    ceiling: MATERIALS.ceiling[0],
+    wallHeight: 3,
+  },
+  {
+    id: 'balcony',
+    name: '발코니',
+    points: [{x:0,y:-2},{x:8,y:-2},{x:8,y:0},{x:0,y:0}],
+    floor: MATERIALS.floor[5],
+    wallMat: MATERIALS.wall[1],
+    baseboard: MATERIALS.baseboard[3],
+    ceiling: MATERIALS.ceiling[0],
+    wallHeight: 1.5,
+  },
+];
+
+// Doors
+const doors = [
+  { from: 'living', to: 'kitchen', pos: {x:8, y:3}, dir: 'v', width: 1.5 },
+  { from: 'living', to: 'bedroom1', pos: {x:3, y:7}, dir: 'h', width: 1.2 },
+  { from: 'kitchen', to: 'bedroom2', pos: {x:11, y:7}, dir: 'h', width: 1.2 },
+  { from: 'bathroom', to: 'entrance', pos: {x:7, y:10}, dir: 'h', width: 0.8 },
+  { from: 'entrance', to: 'living', pos: {x:6, y:11}, dir: 'v', width: 1.0 },
+  { from: 'balcony', to: 'living', pos: {x:4, y:0}, dir: 'h', width: 2.0 },
+];
+
+// Windows
+const windows = [
+  { room: 'living', pos: {x:0, y:3}, dir: 'v', width: 2.0 },
+  { room: 'bedroom1', pos: {x:0, y:10}, dir: 'v', width: 1.8 },
+  { room: 'bedroom2', pos: {x:14, y:9}, dir: 'v', width: 1.8 },
+  { room: 'kitchen', pos: {x:14, y:3}, dir: 'v', width: 1.5 },
+  { room: 'balcony', pos: {x:0, y:-1}, dir: 'v', width: 3.0 },
+];
+
+const SCALE = 38;
+let selectedRoom = null;
+let selectedPart = null; // 'floor','wall','baseboard','ceiling'
+
+// Isometric conversion
+function toIso(x, y, z = 0) {
+  const ix = (x - y) * SCALE * 0.866;
+  const iy = (x + y) * SCALE * 0.5 - z * SCALE;
+  return { x: ix, y: iy };
+}
+
+function drawFloorPattern(points2d, mat) {
+  ctx.save();
+  const isoPoints = points2d.map(p => toIso(p.x, p.y));
+
+  ctx.beginPath();
+  isoPoints.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+  ctx.closePath();
+  ctx.clip();
+
+  // Base color
+  ctx.fillStyle = mat.color;
+  ctx.fill();
+
+  // Pattern overlay
+  if (mat.pattern === 'tile') {
+    drawTilePattern(points2d, mat);
+  } else if (mat.pattern === 'wood') {
+    drawWoodPattern(points2d, mat);
+  } else if (mat.pattern === 'herringbone') {
+    drawHerringbonePattern(points2d, mat);
+  } else if (mat.pattern === 'terrazzo') {
+    drawTerrazzoPattern(points2d, mat);
+  } else if (mat.pattern === 'concrete') {
+    drawConcretePattern(points2d, mat);
+  }
+
+  ctx.restore();
+
+  // Floor outline
+  ctx.beginPath();
+  isoPoints.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+  ctx.closePath();
+  ctx.strokeStyle = 'rgba(0,0,0,0.15)';
+  ctx.lineWidth = 0.5;
+  ctx.stroke();
+}
+
+function drawTilePattern(points2d, mat) {
+  const minX = Math.min(...points2d.map(p => p.x));
+  const maxX = Math.max(...points2d.map(p => p.x));
+  const minY = Math.min(...points2d.map(p => p.y));
+  const maxY = Math.max(...points2d.map(p => p.y));
+  const ts = mat.tileSize / SCALE;
+
+  ctx.strokeStyle = 'rgba(0,0,0,0.08)';
+  ctx.lineWidth = 0.5;
+
+  for (let gx = minX; gx <= maxX; gx += ts) {
+    const p1 = toIso(gx, minY);
+    const p2 = toIso(gx, maxY);
+    ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.stroke();
+  }
+  for (let gy = minY; gy <= maxY; gy += ts) {
+    const p1 = toIso(minX, gy);
+    const p2 = toIso(maxX, gy);
+    ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.stroke();
+  }
+}
+
+function drawWoodPattern(points2d, mat) {
+  const minX = Math.min(...points2d.map(p => p.x));
+  const maxX = Math.max(...points2d.map(p => p.x));
+  const minY = Math.min(...points2d.map(p => p.y));
+  const maxY = Math.max(...points2d.map(p => p.y));
+  const ts = mat.tileSize / SCALE;
+
+  ctx.strokeStyle = 'rgba(0,0,0,0.06)';
+  ctx.lineWidth = 0.3;
+
+  for (let gy = minY; gy <= maxY; gy += ts * 0.15) {
+    const p1 = toIso(minX, gy);
+    const p2 = toIso(maxX, gy);
+    ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.stroke();
+  }
+  // Plank divisions
+  ctx.strokeStyle = 'rgba(0,0,0,0.1)';
+  ctx.lineWidth = 0.5;
+  for (let gx = minX; gx <= maxX; gx += ts * 0.5) {
+    const p1 = toIso(gx, minY);
+    const p2 = toIso(gx, maxY);
+    ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.stroke();
+  }
+}
+
+function drawHerringbonePattern(points2d, mat) {
+  const minX = Math.min(...points2d.map(p => p.x));
+  const maxX = Math.max(...points2d.map(p => p.x));
+  const minY = Math.min(...points2d.map(p => p.y));
+  const maxY = Math.max(...points2d.map(p => p.y));
+  const ts = mat.tileSize / SCALE;
+
+  ctx.strokeStyle = 'rgba(0,0,0,0.1)';
+  ctx.lineWidth = 0.4;
+
+  for (let gx = minX; gx <= maxX; gx += ts) {
+    for (let gy = minY; gy <= maxY; gy += ts) {
+      const alt = Math.floor((gx - minX) / ts + (gy - minY) / ts) % 2;
+      const p1 = toIso(gx, gy);
+      const p2 = alt ? toIso(gx + ts, gy + ts * 0.5) : toIso(gx + ts * 0.5, gy + ts);
+      ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.stroke();
+    }
+  }
+}
+
+function drawTerrazzoPattern(points2d, mat) {
+  const minX = Math.min(...points2d.map(p => p.x));
+  const maxX = Math.max(...points2d.map(p => p.x));
+  const minY = Math.min(...points2d.map(p => p.y));
+  const maxY = Math.max(...points2d.map(p => p.y));
+
+  const rng = (s) => { let h = s; return () => { h = (h * 16807 + 0) % 2147483647; return h / 2147483647; }; };
+  const rand = rng(42);
+
+  for (let i = 0; i < 60; i++) {
+    const gx = minX + rand() * (maxX - minX);
+    const gy = minY + rand() * (maxY - minY);
+    const p = toIso(gx, gy);
+    const r = 1 + rand() * 2;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(${80+rand()*80}, ${70+rand()*70}, ${60+rand()*60}, 0.15)`;
+    ctx.fill();
+  }
+}
+
+function drawConcretePattern(points2d, mat) {
+  const minX = Math.min(...points2d.map(p => p.x));
+  const maxX = Math.max(...points2d.map(p => p.x));
+  const minY = Math.min(...points2d.map(p => p.y));
+  const maxY = Math.max(...points2d.map(p => p.y));
+
+  const rng = (s) => { let h = s; return () => { h = (h * 16807 + 0) % 2147483647; return h / 2147483647; }; };
+  const rand = rng(99);
+
+  ctx.strokeStyle = 'rgba(0,0,0,0.04)';
+  ctx.lineWidth = 0.3;
+  for (let i = 0; i < 20; i++) {
+    const gx = minX + rand() * (maxX - minX);
+    const gy = minY + rand() * (maxY - minY);
+    const p1 = toIso(gx, gy);
+    const p2 = toIso(gx + (rand()-0.5)*2, gy + (rand()-0.5)*2);
+    ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.stroke();
+  }
+}
+
+function darken(hex, factor) {
+  const r = parseInt(hex.slice(1,3),16);
+  const g = parseInt(hex.slice(3,5),16);
+  const b = parseInt(hex.slice(5,7),16);
+  return `rgb(${Math.floor(r*factor)},${Math.floor(g*factor)},${Math.floor(b*factor)})`;
+}
+
+function lighten(hex, factor) {
+  const r = parseInt(hex.slice(1,3),16);
+  const g = parseInt(hex.slice(3,5),16);
+  const b = parseInt(hex.slice(5,7),16);
+  return `rgb(${Math.min(255,Math.floor(r+(255-r)*factor))},${Math.min(255,Math.floor(g+(255-g)*factor))},${Math.min(255,Math.floor(b+(255-b)*factor))})`;
+}
+
+function drawWall(x1, y1, x2, y2, height, mat, side, hasDoor, doorPos, doorWidth, hasWindow, winPos, winWidth) {
+  const wallThickness = 0.25;
+  const h = height * SCALE;
+
+  const bp1 = toIso(x1, y1);
+  const bp2 = toIso(x2, y2);
+
+  // Determine wall face color based on side
+  let faceColor, darkColor;
+  if (side === 'left') {
+    faceColor = darken(mat.color, 0.82);
+    darkColor = darken(mat.color, 0.7);
+  } else if (side === 'right') {
+    faceColor = darken(mat.color, 0.92);
+    darkColor = darken(mat.color, 0.8);
+  } else {
+    faceColor = mat.color;
+    darkColor = darken(mat.color, 0.85);
+  }
+
+  const tp1 = { x: bp1.x, y: bp1.y - h };
+  const tp2 = { x: bp2.x, y: bp2.y - h };
+
+  if (hasDoor || hasWindow) {
+    // Draw wall with openings
+    // For simplicity, draw full wall with opening cut
+    ctx.beginPath();
+    ctx.moveTo(bp1.x, bp1.y);
+    ctx.lineTo(tp1.x, tp1.y);
+    ctx.lineTo(tp2.x, tp2.y);
+    ctx.lineTo(bp2.x, bp2.y);
+    ctx.closePath();
+    ctx.fillStyle = faceColor;
+    ctx.fill();
+
+    if (hasWindow) {
+      // Window opening
+      const dx = x2 - x1;
+      const dy = y2 - y1;
+      const len = Math.sqrt(dx*dx + dy*dy);
+      const t1 = (winPos || 0.3);
+      const t2 = t1 + (winWidth || 1.5) / len;
+      const wx1 = x1 + dx * t1;
+      const wy1 = y1 + dy * t1;
+      const wx2 = x1 + dx * Math.min(t2, 1);
+      const wy2 = y1 + dy * Math.min(t2, 1);
+
+      const wb1 = toIso(wx1, wy1);
+      const wb2 = toIso(wx2, wy2);
+      const winBottom = h * 0.35;
+      const winTop = h * 0.8;
+
+      ctx.beginPath();
+      ctx.moveTo(wb1.x, wb1.y - winBottom);
+      ctx.lineTo(wb1.x, wb1.y - winTop);
+      ctx.lineTo(wb2.x, wb2.y - winTop);
+      ctx.lineTo(wb2.x, wb2.y - winBottom);
+      ctx.closePath();
+      ctx.fillStyle = 'rgba(180,220,240,0.5)';
+      ctx.fill();
+      ctx.strokeStyle = darken(mat.color, 0.6);
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      // Window cross
+      const wmx = (wb1.x + wb2.x) / 2;
+      const wmy_b = (wb1.y + wb2.y) / 2 - winBottom;
+      const wmy_t = (wb1.y + wb2.y) / 2 - winTop;
+      ctx.beginPath();
+      ctx.moveTo(wmx, wmy_b + (winBottom - winTop) * 0); // adjusted
+      ctx.lineTo(wmx, (wb1.y + wb2.y)/2 - winTop);
+      ctx.strokeStyle = darken(mat.color, 0.6);
+      ctx.lineWidth = 0.5;
+      ctx.stroke();
+    }
+
+    if (hasDoor) {
+      const dx = x2 - x1;
+      const dy = y2 - y1;
+      const len = Math.sqrt(dx*dx + dy*dy);
+      const t1 = (doorPos || 0.3);
+      const t2 = t1 + (doorWidth || 1.2) / len;
+      const dox1 = x1 + dx * t1;
+      const doy1 = y1 + dy * t1;
+      const dox2 = x1 + dx * Math.min(t2, 1);
+      const doy2 = y1 + dy * Math.min(t2, 1);
+
+      const db1 = toIso(dox1, doy1);
+      const db2 = toIso(dox2, doy2);
+      const doorH = h * 0.75;
+
+      ctx.beginPath();
+      ctx.moveTo(db1.x, db1.y);
+      ctx.lineTo(db1.x, db1.y - doorH);
+      ctx.lineTo(db2.x, db2.y - doorH);
+      ctx.lineTo(db2.x, db2.y);
+      ctx.closePath();
+      ctx.fillStyle = darken(mat.color, 0.55);
+      ctx.fill();
+      ctx.strokeStyle = darken(mat.color, 0.4);
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+  } else {
+    // Solid wall
+    ctx.beginPath();
+    ctx.moveTo(bp1.x, bp1.y);
+    ctx.lineTo(tp1.x, tp1.y);
+    ctx.lineTo(tp2.x, tp2.y);
+    ctx.lineTo(bp2.x, bp2.y);
+    ctx.closePath();
+    ctx.fillStyle = faceColor;
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(0,0,0,0.15)';
+    ctx.lineWidth = 0.5;
+    ctx.stroke();
+  }
+
+  // Wall top edge
+  ctx.beginPath();
+  ctx.moveTo(tp1.x, tp1.y);
+  ctx.lineTo(tp2.x, tp2.y);
+  ctx.strokeStyle = darkColor;
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  // Baseboard
+  const bbH = h * 0.04;
+  ctx.beginPath();
+  ctx.moveTo(bp1.x, bp1.y);
+  ctx.lineTo(bp1.x, bp1.y - bbH);
+  ctx.lineTo(bp2.x, bp2.y - bbH);
+  ctx.lineTo(bp2.x, bp2.y);
+  ctx.closePath();
+  ctx.fillStyle = darken(mat.color, 0.6);
+  ctx.fill();
+}
+
+// Hit detection
+const hitAreas = [];
+
+function buildHitAreas() {
+  hitAreas.length = 0;
+  // Sort rooms for rendering (back to front)
+  const sorted = [...rooms].sort((a, b) => {
+    const aMin = Math.min(...a.points.map(p => p.x + p.y));
+    const bMin = Math.min(...b.points.map(p => p.x + p.y));
+    return aMin - bMin;
+  });
+
+  sorted.forEach(room => {
+    const isoPoints = room.points.map(p => toIso(p.x, p.y));
+    hitAreas.push({
+      room: room,
+      part: 'floor',
+      path: isoPoints,
+    });
+  });
+}
+
+function pointInPoly(px, py, poly) {
+  let inside = false;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const xi = poly[i].x, yi = poly[i].y;
+    const xj = poly[j].x, yj = poly[j].y;
+    if (((yi > py) !== (yj > py)) && (px < (xj - xi) * (py - yi) / (yj - yi) + xi)) {
+      inside = !inside;
+    }
+  }
+  return inside;
+}
+
+function render() {
+  ctx.setTransform(1,0,0,1,0,0);
+  ctx.clearRect(0, 0, W, H);
+
+  ctx.setTransform(dpr * cam.zoom, 0, 0, dpr * cam.zoom,
+    W/2 * dpr + cam.x * dpr,
+    H/2.5 * dpr + cam.y * dpr);
+
+  // Sort rooms back to front
+  const sorted = [...rooms].sort((a, b) => {
+    const aSum = Math.min(...a.points.map(p => p.x + p.y));
+    const bSum = Math.min(...b.points.map(p => p.x + p.y));
+    return aSum - bSum;
+  });
+
+  // Draw floors
+  sorted.forEach(room => {
+    drawFloorPattern(room.points, room.floor);
+
+    // Highlight selected
+    if (selectedRoom === room && selectedPart === 'floor') {
+      const isoPoints = room.points.map(p => toIso(p.x, p.y));
+      ctx.beginPath();
+      isoPoints.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+      ctx.closePath();
+      ctx.strokeStyle = '#e94560';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+
+    // Room label
+    const cx = room.points.reduce((s, p) => s + p.x, 0) / room.points.length;
+    const cy = room.points.reduce((s, p) => s + p.y, 0) / room.points.length;
+    const cp = toIso(cx, cy);
+    ctx.font = '500 11px "Noto Sans KR"';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = 'rgba(0,0,0,0.4)';
+    ctx.fillText(room.name, cp.x, cp.y + 4);
+  });
+
+  // Draw walls (back walls first, then side walls, then front walls)
+  sorted.forEach(room => {
+    const pts = room.points;
+    const h = room.wallHeight;
+    const mat = room.wallMat;
+
+    // Determine which walls are "back" (top-left and top in iso)
+    // For a rectangular room with points [TL, TR, BR, BL]
+    // Back walls: TL→TR (top), TL→BL (left) — these are drawn first
+    // Front walls: TR→BR (right), BL→BR (bottom) — drawn on top
+
+    // Find doors and windows for this room
+    const roomDoors = doors.filter(d => d.from === room.id || d.to === room.id);
+    const roomWindows = windows.filter(w => w.room === room.id);
+
+    // Wall segments
+    for (let i = 0; i < pts.length; i++) {
+      const p1 = pts[i];
+      const p2 = pts[(i + 1) % pts.length];
+
+      const dx = p2.x - p1.x;
+      const dy = p2.y - p1.y;
+
+      let side;
+      if (dx > 0 && dy === 0) side = 'back'; // top edge going right
+      else if (dx === 0 && dy > 0) side = 'right'; // right edge going down
+      else if (dx < 0 && dy === 0) side = 'front'; // bottom edge going left
+      else if (dx === 0 && dy < 0) side = 'left'; // left edge going up
+
+      // Check for doors on this wall segment
+      let hasDoor = false, doorPosT = 0, doorW = 0;
+      roomDoors.forEach(d => {
+        if (side === 'back' || side === 'front') {
+          if (Math.abs(d.pos.y - p1.y) < 0.1 && d.dir === 'h') {
+            hasDoor = true;
+            doorPosT = (d.pos.x - Math.min(p1.x, p2.x)) / Math.abs(dx);
+            doorW = d.width;
+          }
+        } else {
+          if (Math.abs(d.pos.x - p1.x) < 0.1 && d.dir === 'v') {
+            hasDoor = true;
+            doorPosT = (d.pos.y - Math.min(p1.y, p2.y)) / Math.abs(dy);
+            doorW = d.width;
+          }
+        }
+      });
+
+      let hasWindow = false, winPosT = 0, winW = 0;
+      roomWindows.forEach(w => {
+        if (side === 'back' || side === 'front') {
+          if (Math.abs(w.pos.y - p1.y) < 0.5 && w.dir === 'h') {
+            hasWindow = true;
+            winPosT = (w.pos.x - Math.min(p1.x, p2.x)) / Math.abs(dx);
+            winW = w.width;
+          }
+        } else {
+          if (Math.abs(w.pos.x - p1.x) < 0.5 && w.dir === 'v') {
+            hasWindow = true;
+            winPosT = (w.pos.y - Math.min(p1.y, p2.y)) / Math.abs(dy);
+            winW = w.width;
+          }
+        }
+      });
+
+      drawWall(p1.x, p1.y, p2.x, p2.y, h, mat, side, hasDoor, doorPosT, doorW, hasWindow, winPosT, winW);
+    }
+  });
+
+  // Wall top caps (for depth)
+  sorted.forEach(room => {
+    const pts = room.points;
+    const h = room.wallHeight;
+    const wallThick = 0.2;
+
+    // Draw wall top as thin parallelogram for each segment
+    for (let i = 0; i < pts.length; i++) {
+      const p1 = pts[i];
+      const p2 = pts[(i + 1) % pts.length];
+      const dx = p2.x - p1.x;
+      const dy = p2.y - p1.y;
+      const len = Math.sqrt(dx*dx + dy*dy);
+      if (len === 0) continue;
+
+      const nx = -dy / len * wallThick;
+      const ny = dx / len * wallThick;
+
+      const tp1 = toIso(p1.x, p1.y, h);
+      const tp2 = toIso(p2.x, p2.y, h);
+      const tp3 = toIso(p2.x + nx, p2.y + ny, h);
+      const tp4 = toIso(p1.x + nx, p1.y + ny, h);
+
+      ctx.beginPath();
+      ctx.moveTo(tp1.x, tp1.y);
+      ctx.lineTo(tp2.x, tp2.y);
+      ctx.lineTo(tp3.x, tp3.y);
+      ctx.lineTo(tp4.x, tp4.y);
+      ctx.closePath();
+      ctx.fillStyle = '#2a2a2a';
+      ctx.fill();
+    }
+  });
+}
+
+function resize() {
+  const rect = canvas.parentElement.getBoundingClientRect();
+  dpr = window.devicePixelRatio || 1;
+  W = rect.width;
+  H = rect.height;
+  canvas.width = W * dpr;
+  canvas.height = H * dpr;
+  canvas.style.width = W + 'px';
+  canvas.style.height = H + 'px';
+  buildHitAreas();
+  render();
+}
+
+// Interaction
+canvas.addEventListener('mousedown', (e) => {
+  if (mode === 'select') {
+    handleSelect(e);
+  }
+  drag.active = true;
+  drag.sx = e.clientX;
+  drag.sy = e.clientY;
+  drag.cx = cam.x;
+  drag.cy = cam.y;
+});
+
+canvas.addEventListener('mousemove', (e) => {
+  if (!drag.active) return;
+  if (mode !== 'select' || !selectedRoom) {
+    cam.x = drag.cx + (e.clientX - drag.sx);
+    cam.y = drag.cy + (e.clientY - drag.sy);
+    render();
+  }
+});
+
+canvas.addEventListener('mouseup', () => { drag.active = false; });
+
+canvas.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  const delta = e.deltaY > 0 ? 0.9 : 1.1;
+  cam.zoom = Math.max(0.3, Math.min(3, cam.zoom * delta));
+  document.getElementById('zoom-info').textContent = Math.round(cam.zoom * 100) + '%';
+  render();
+}, { passive: false });
+
+// Touch support
+let lastTouchDist = 0;
+canvas.addEventListener('touchstart', (e) => {
+  if (e.touches.length === 1) {
+    const t = e.touches[0];
+    if (mode === 'select') {
+      handleSelect({ clientX: t.clientX, clientY: t.clientY });
+    }
+    drag.active = true;
+    drag.sx = t.clientX;
+    drag.sy = t.clientY;
+    drag.cx = cam.x;
+    drag.cy = cam.y;
+  } else if (e.touches.length === 2) {
+    const dx = e.touches[0].clientX - e.touches[1].clientX;
+    const dy = e.touches[0].clientY - e.touches[1].clientY;
+    lastTouchDist = Math.sqrt(dx*dx + dy*dy);
+  }
+}, { passive: true });
+
+canvas.addEventListener('touchmove', (e) => {
+  e.preventDefault();
+  if (e.touches.length === 1 && drag.active) {
+    cam.x = drag.cx + (e.touches[0].clientX - drag.sx);
+    cam.y = drag.cy + (e.touches[0].clientY - drag.sy);
+    render();
+  } else if (e.touches.length === 2) {
+    const dx = e.touches[0].clientX - e.touches[1].clientX;
+    const dy = e.touches[0].clientY - e.touches[1].clientY;
+    const dist = Math.sqrt(dx*dx + dy*dy);
+    if (lastTouchDist > 0) {
+      cam.zoom = Math.max(0.3, Math.min(3, cam.zoom * (dist / lastTouchDist)));
+      document.getElementById('zoom-info').textContent = Math.round(cam.zoom * 100) + '%';
+      render();
+    }
+    lastTouchDist = dist;
+  }
+}, { passive: false });
+
+canvas.addEventListener('touchend', () => { drag.active = false; lastTouchDist = 0; });
+
+function handleSelect(e) {
+  const rect = canvas.getBoundingClientRect();
+  const mx = (e.clientX - rect.left - W/2 - cam.x) / cam.zoom;
+  const my = (e.clientY - rect.top - H/2.5 - cam.y) / cam.zoom;
+
+  selectedRoom = null;
+  selectedPart = null;
+
+  // Check hit areas (reverse order for top-most first)
+  for (let i = rooms.length - 1; i >= 0; i--) {
+    const room = rooms[i];
+    const isoPoints = room.points.map(p => toIso(p.x, p.y));
+    if (pointInPoly(mx, my, isoPoints)) {
+      selectedRoom = room;
+      selectedPart = 'floor';
+      openMaterialPanel(room, 'floor');
+      break;
+    }
+  }
+
+  render();
+  if (selectedRoom) {
+    document.getElementById('info-text').textContent =
+      `${selectedRoom.name} - ${selectedPart === 'floor' ? '바닥' : '벽'} 선택됨`;
+  } else {
+    document.getElementById('info-text').textContent = '영역을 클릭하여 마감재를 변경하세요';
+  }
+}
+
+function openMaterialPanel(room, part) {
+  const panel = document.getElementById('material-panel');
+  panel.classList.add('open');
+
+  const catLabel = document.getElementById('cat-label');
+  const grid = document.getElementById('mat-grid');
+  const title = document.getElementById('panel-title');
+
+  title.textContent = room.name + ' 마감재';
+
+  // Show tabs for different parts
+  grid.innerHTML = '';
+
+  const parts = ['floor', 'wall', 'baseboard'];
+  const partNames = { floor: '바닥', wall: '벽', baseboard: '걸레받이' };
+
+  // Part selector tabs
+  const tabWrap = document.createElement('div');
+  tabWrap.style.cssText = 'display:flex;gap:4px;margin-bottom:8px;grid-column:1/-1;';
+  parts.forEach(p => {
+    const tab = document.createElement('button');
+    tab.textContent = partNames[p];
+    tab.style.cssText = `flex:1;padding:6px;border:1px solid #0f3460;background:${selectedPart===p?'#e94560':'#16213e'};color:${selectedPart===p?'#fff':'#a0a0b8'};border-radius:4px;font-size:11px;cursor:pointer;font-family:inherit;`;
+    tab.onclick = () => {
+      selectedPart = p;
+      openMaterialPanel(room, p);
+      render();
+    };
+    tabWrap.appendChild(tab);
+  });
+  grid.appendChild(tabWrap);
+
+  // Material items
+  const matKey = part === 'baseboard' ? 'baseboard' : part;
+  const mats = MATERIALS[matKey] || MATERIALS.floor;
+  const currentMat = part === 'floor' ? room.floor : part === 'wall' ? room.wallMat : room.baseboard;
+
+  mats.forEach(mat => {
+    const item = document.createElement('div');
+    item.className = 'mat-item' + (currentMat.id === mat.id ? ' selected' : '');
+    item.style.background = mat.color;
+
+    // Add pattern hint
+    if (mat.pattern === 'tile') {
+      item.style.backgroundImage = `
+        linear-gradient(rgba(0,0,0,0.1) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,0,0,0.1) 1px, transparent 1px)
+      `;
+      item.style.backgroundSize = '12px 12px';
+    } else if (mat.pattern === 'wood') {
+      item.style.backgroundImage = `repeating-linear-gradient(90deg, transparent, transparent 8px, rgba(0,0,0,0.05) 8px, rgba(0,0,0,0.05) 9px)`;
+    } else if (mat.pattern === 'brick') {
+      item.style.backgroundImage = `
+        linear-gradient(rgba(0,0,0,0.15) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,0,0,0.15) 1px, transparent 1px)
+      `;
+      item.style.backgroundSize = '16px 8px';
+    } else if (mat.pattern === 'subway') {
+      item.style.backgroundImage = `
+        linear-gradient(rgba(0,0,0,0.1) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,0,0,0.1) 1px, transparent 1px)
+      `;
+      item.style.backgroundSize = '20px 10px';
+    }
+
+    const label = document.createElement('div');
+    label.className = 'mat-label';
+    label.textContent = mat.name;
+    item.appendChild(label);
+
+    item.onclick = () => {
+      if (part === 'floor') room.floor = mat;
+      else if (part === 'wall') room.wallMat = mat;
+      else if (part === 'baseboard') room.baseboard = mat;
+      openMaterialPanel(room, part);
+      render();
+    };
+
+    grid.appendChild(item);
+  });
+}
+
+function closePanel() {
+  document.getElementById('material-panel').classList.remove('open');
+  selectedRoom = null;
+  selectedPart = null;
+  render();
+  document.getElementById('info-text').textContent = '영역을 클릭하여 마감재를 변경하세요';
+}
+
+// Toolbar
+document.querySelectorAll('.tool-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const m = btn.dataset.mode;
+    if (m === 'reset') {
+      cam = { x: 0, y: 0, zoom: 1 };
+      document.getElementById('zoom-info').textContent = '100%';
+      render();
+      return;
+    }
+    if (m === 'zoom-in') {
+      cam.zoom = Math.min(3, cam.zoom * 1.3);
+      document.getElementById('zoom-info').textContent = Math.round(cam.zoom * 100) + '%';
+      render();
+      return;
+    }
+    if (m === 'zoom-out') {
+      cam.zoom = Math.max(0.3, cam.zoom * 0.7);
+      document.getElementById('zoom-info').textContent = Math.round(cam.zoom * 100) + '%';
+      render();
+      return;
+    }
+    if (m === 'rotate') {
+      // Simple 90 degree rotation by swapping x,y
+      rooms.forEach(room => {
+        room.points = room.points.map(p => ({ x: -p.y, y: p.x }));
+      });
+      render();
+      return;
+    }
+    mode = m;
+    document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  });
+});
+
+// Export
+document.getElementById('export-btn').addEventListener('click', () => {
+  const expCanvas = document.createElement('canvas');
+  const expW = 1920;
+  const expH = 1080;
+  expCanvas.width = expW;
+  expCanvas.height = expH;
+  const expCtx = expCanvas.getContext('2d');
+
+  // White background
+  expCtx.fillStyle = '#ffffff';
+  expCtx.fillRect(0, 0, expW, expH);
+
+  // Save current ctx and swap
+  const origCtx = ctx;
+  const origW = W;
+  const origH = H;
+  const origDpr = dpr;
+
+  ctx = expCtx;
+  W = expW;
+  H = expH;
+  dpr = 1;
+
+  const savedZoom = cam.zoom;
+  const savedX = cam.x;
+  const savedY = cam.y;
+  cam.zoom = 1.5;
+  cam.x = 0;
+  cam.y = 50;
+
+  render();
+
+  // Restore
+  ctx = origCtx;
+  W = origW;
+  H = origH;
+  dpr = origDpr;
+  cam.zoom = savedZoom;
+  cam.x = savedX;
+  cam.y = savedY;
+
+  const link = document.createElement('a');
+  link.download = 'floorplan-isometric.png';
+  link.href = expCanvas.toDataURL('image/png');
+  link.click();
+
+  render();
+});
+
+window.addEventListener('resize', resize);
+resize();
+</script>
+</body>
+</html>

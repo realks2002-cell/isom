@@ -1,0 +1,361 @@
+import type {
+  FloorPlan,
+  Room,
+  Door,
+  Window,
+  MaterialAssignment,
+  PartType,
+} from '@/types/room';
+import { SCALE, toIso, darken, polygonCenter } from './isometric';
+import { drawFloorPattern } from './patterns';
+
+export interface Selection {
+  roomId: string;
+  part: PartType;
+}
+
+export interface RenderState {
+  floorPlan: FloorPlan;
+  camera: { x: number; y: number; zoom: number };
+  selection: Selection | null;
+  width: number;
+  height: number;
+  dpr: number;
+}
+
+function sortRoomsBackToFront(rooms: Room[]): Room[] {
+  return [...rooms].sort((a, b) => {
+    const aMin = Math.min(...a.points.map((p) => p.x + p.y));
+    const bMin = Math.min(...b.points.map((p) => p.x + p.y));
+    return aMin - bMin;
+  });
+}
+
+interface WallSide {
+  side: 'back' | 'front' | 'left' | 'right';
+}
+
+// 벡터 각도 → 4방향 분류 (대각선 벽도 포함)
+function classifySide(dx: number, dy: number): WallSide['side'] {
+  const angle = Math.atan2(dy, dx); // -π..π
+  const deg = (angle * 180) / Math.PI;
+  if (deg >= -45 && deg < 45) return 'back';
+  if (deg >= 45 && deg < 135) return 'right';
+  if (deg >= 135 || deg < -135) return 'front';
+  return 'left';
+}
+
+function drawWall(
+  ctx: CanvasRenderingContext2D,
+  x1: number,
+  y1: number,
+  x2: number,
+  y2: number,
+  height: number,
+  mat: MaterialAssignment,
+  side: WallSide['side'],
+  door: { posT: number; width: number } | null,
+  win: { posT: number; width: number } | null,
+  doorMat?: MaterialAssignment
+) {
+  const h = height * SCALE;
+  const bp1 = toIso(x1, y1);
+  const bp2 = toIso(x2, y2);
+  const tp1 = { x: bp1.x, y: bp1.y - h };
+  const tp2 = { x: bp2.x, y: bp2.y - h };
+
+  let faceColor: string;
+  let darkColor: string;
+  if (side === 'left') {
+    faceColor = darken(mat.color, 0.82);
+    darkColor = darken(mat.color, 0.7);
+  } else if (side === 'right') {
+    faceColor = darken(mat.color, 0.92);
+    darkColor = darken(mat.color, 0.8);
+  } else {
+    faceColor = mat.color;
+    darkColor = darken(mat.color, 0.85);
+  }
+
+  // 벽면
+  ctx.beginPath();
+  ctx.moveTo(bp1.x, bp1.y);
+  ctx.lineTo(tp1.x, tp1.y);
+  ctx.lineTo(tp2.x, tp2.y);
+  ctx.lineTo(bp2.x, bp2.y);
+  ctx.closePath();
+  ctx.fillStyle = faceColor;
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(40,40,40,0.5)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  const dx = x2 - x1;
+  const dy = y2 - y1;
+  const len = Math.sqrt(dx * dx + dy * dy);
+
+  if (win && len > 0.01) {
+    const t1 = Math.max(0, win.posT);
+    const t2 = Math.min(1, t1 + win.width / len);
+    const wb1 = toIso(x1 + dx * t1, y1 + dy * t1);
+    const wb2 = toIso(x1 + dx * t2, y1 + dy * t2);
+    const winBottom = h * 0.35;
+    const winTop = h * 0.8;
+
+    ctx.beginPath();
+    ctx.moveTo(wb1.x, wb1.y - winBottom);
+    ctx.lineTo(wb1.x, wb1.y - winTop);
+    ctx.lineTo(wb2.x, wb2.y - winTop);
+    ctx.lineTo(wb2.x, wb2.y - winBottom);
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(180,220,240,0.5)';
+    ctx.fill();
+    ctx.strokeStyle = darken(mat.color, 0.6);
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    // cross
+    const mx = (wb1.x + wb2.x) / 2;
+    ctx.beginPath();
+    ctx.moveTo(mx, (wb1.y + wb2.y) / 2 - winBottom);
+    ctx.lineTo(mx, (wb1.y + wb2.y) / 2 - winTop);
+    ctx.strokeStyle = darken(mat.color, 0.5);
+    ctx.lineWidth = 0.5;
+    ctx.stroke();
+  }
+
+  if (door && len > 0.01) {
+    const t1 = Math.max(0, door.posT);
+    const t2 = Math.min(1, t1 + door.width / len);
+    const db1 = toIso(x1 + dx * t1, y1 + dy * t1);
+    const db2 = toIso(x1 + dx * t2, y1 + dy * t2);
+    const doorH = h * 0.75;
+
+    ctx.beginPath();
+    ctx.moveTo(db1.x, db1.y);
+    ctx.lineTo(db1.x, db1.y - doorH);
+    ctx.lineTo(db2.x, db2.y - doorH);
+    ctx.lineTo(db2.x, db2.y);
+    ctx.closePath();
+    ctx.fillStyle = doorMat?.color ?? darken(mat.color, 0.55);
+    ctx.fill();
+    ctx.strokeStyle = darken(doorMat?.color ?? mat.color, 0.5);
+    ctx.lineWidth = 1.2;
+    ctx.stroke();
+  }
+
+  // 벽 상단 강조 라인
+  ctx.beginPath();
+  ctx.moveTo(tp1.x, tp1.y);
+  ctx.lineTo(tp2.x, tp2.y);
+  ctx.strokeStyle = 'rgba(30,30,30,0.8)';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // 걸레받이 (벽 색과 구분되도록 darken 0.45)
+  const bbH = h * 0.05;
+  ctx.beginPath();
+  ctx.moveTo(bp1.x, bp1.y);
+  ctx.lineTo(bp1.x, bp1.y - bbH);
+  ctx.lineTo(bp2.x, bp2.y - bbH);
+  ctx.lineTo(bp2.x, bp2.y);
+  ctx.closePath();
+  ctx.fillStyle = darken(mat.color, 0.45);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(30,30,30,0.6)';
+  ctx.lineWidth = 0.8;
+  ctx.stroke();
+}
+
+// 선분 위 점 투영: (t, 수직거리). t는 [0,1] clamp 전 원시값.
+function projectPointOnSegment(
+  px: number,
+  py: number,
+  x1: number,
+  y1: number,
+  x2: number,
+  y2: number
+): { t: number; dist: number } {
+  const dx = x2 - x1;
+  const dy = y2 - y1;
+  const lenSq = dx * dx + dy * dy;
+  if (lenSq < 1e-9) return { t: 0, dist: Infinity };
+  const t = ((px - x1) * dx + (py - y1) * dy) / lenSq;
+  const projX = x1 + t * dx;
+  const projY = y1 + t * dy;
+  const dist = Math.hypot(px - projX, py - projY);
+  return { t, dist };
+}
+
+const OPENING_TOLERANCE = 0.3; // meter
+
+function matchDoorForSegment(
+  doors: Door[],
+  x1: number,
+  y1: number,
+  x2: number,
+  y2: number
+): { posT: number; width: number } | null {
+  const len = Math.hypot(x2 - x1, y2 - y1);
+  if (len < 1e-6) return null;
+  for (const d of doors) {
+    const { t, dist } = projectPointOnSegment(d.position.x, d.position.y, x1, y1, x2, y2);
+    if (dist < OPENING_TOLERANCE && t > 0 && t < 1) {
+      const half = d.width / 2 / len;
+      return { posT: Math.max(0, t - half), width: d.width };
+    }
+  }
+  return null;
+}
+
+function matchWindowForSegment(
+  windows: Window[],
+  roomId: string,
+  x1: number,
+  y1: number,
+  x2: number,
+  y2: number
+): { posT: number; width: number } | null {
+  const len = Math.hypot(x2 - x1, y2 - y1);
+  if (len < 1e-6) return null;
+  for (const w of windows) {
+    if (w.roomId !== roomId) continue;
+    const { t, dist } = projectPointOnSegment(w.position.x, w.position.y, x1, y1, x2, y2);
+    if (dist < OPENING_TOLERANCE && t > 0 && t < 1) {
+      const half = w.width / 2 / len;
+      return { posT: Math.max(0, t - half), width: w.width };
+    }
+  }
+  return null;
+}
+
+function drawWallTopCaps(ctx: CanvasRenderingContext2D, room: Room) {
+  const pts = room.points;
+  const h = room.wallHeight;
+  const thick = 0.12;
+
+  for (let i = 0; i < pts.length; i++) {
+    const p1 = pts[i];
+    const p2 = pts[(i + 1) % pts.length];
+    const dx = p2.x - p1.x;
+    const dy = p2.y - p1.y;
+    const len = Math.sqrt(dx * dx + dy * dy);
+    if (len === 0) continue;
+
+    const nx = (-dy / len) * thick;
+    const ny = (dx / len) * thick;
+
+    const tp1 = toIso(p1.x, p1.y, h);
+    const tp2 = toIso(p2.x, p2.y, h);
+    const tp3 = toIso(p2.x + nx, p2.y + ny, h);
+    const tp4 = toIso(p1.x + nx, p1.y + ny, h);
+
+    ctx.beginPath();
+    ctx.moveTo(tp1.x, tp1.y);
+    ctx.lineTo(tp2.x, tp2.y);
+    ctx.lineTo(tp3.x, tp3.y);
+    ctx.lineTo(tp4.x, tp4.y);
+    ctx.closePath();
+    ctx.fillStyle = '#2a2a2a';
+    ctx.fill();
+  }
+}
+
+export function render(ctx: CanvasRenderingContext2D, state: RenderState) {
+  const { floorPlan, camera, selection, width, height, dpr } = state;
+
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, width * dpr, height * dpr);
+
+  ctx.setTransform(
+    dpr * camera.zoom,
+    0,
+    0,
+    dpr * camera.zoom,
+    (width / 2) * dpr + camera.x * dpr,
+    (height / 2.5) * dpr + camera.y * dpr
+  );
+
+  const sorted = sortRoomsBackToFront(floorPlan.rooms);
+
+  // 1) 바닥
+  for (const room of sorted) {
+    drawFloorPattern(ctx, room.points, room.floor);
+
+    if (selection?.roomId === room.id && selection.part === 'floor') {
+      const iso = room.points.map((p) => toIso(p.x, p.y));
+      ctx.beginPath();
+      iso.forEach((p, i) => (i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y)));
+      ctx.closePath();
+      ctx.strokeStyle = '#e94560';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+
+    const c = polygonCenter(room.points);
+    const cp = toIso(c.x, c.y);
+    ctx.font = '500 11px "Noto Sans KR", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = 'rgba(0,0,0,0.45)';
+    ctx.fillText(room.name, cp.x, cp.y + 4);
+  }
+
+  // 2) 벽
+  for (const room of sorted) {
+    const pts = room.points;
+    for (let i = 0; i < pts.length; i++) {
+      const p1 = pts[i];
+      const p2 = pts[(i + 1) % pts.length];
+      const side = classifySide(p2.x - p1.x, p2.y - p1.y);
+      const door = matchDoorForSegment(floorPlan.doors, p1.x, p1.y, p2.x, p2.y);
+      const win = matchWindowForSegment(floorPlan.windows, room.id, p1.x, p1.y, p2.x, p2.y);
+      drawWall(ctx, p1.x, p1.y, p2.x, p2.y, room.wallHeight, room.wall, side, door, win, room.door);
+    }
+  }
+
+  // 3) 내부 벽 (LINE 세그먼트)
+  if (floorPlan.internalWalls && floorPlan.internalWalls.length > 0) {
+    const defaultMat: MaterialAssignment = {
+      materialId: '',
+      color: sorted[0]?.wall.color ?? '#ece6dc',
+      patternType: 'solid',
+    };
+    const defaultHeight = sorted[0]?.wallHeight ?? 2.7;
+    // Z-정렬: 뒤쪽 세그먼트부터
+    const sortedSegs = [...floorPlan.internalWalls].sort((a, b) => {
+      const aMin = Math.min(a.a.x + a.a.y, a.b.x + a.b.y);
+      const bMin = Math.min(b.a.x + b.a.y, b.b.x + b.b.y);
+      return aMin - bMin;
+    });
+    for (const seg of sortedSegs) {
+      const side = classifySide(seg.b.x - seg.a.x, seg.b.y - seg.a.y);
+      // 내부 벽에도 문/창 매칭 — roomId는 모든 방 대상으로 시도
+      const door = matchDoorForSegment(floorPlan.doors, seg.a.x, seg.a.y, seg.b.x, seg.b.y);
+      // 내부 벽의 경우 창문은 특정 room 제한 없이 모두 체크
+      let win: { posT: number; width: number } | null = null;
+      const len = Math.hypot(seg.b.x - seg.a.x, seg.b.y - seg.a.y);
+      if (len > 0.01) {
+        for (const w of floorPlan.windows) {
+          const dx = seg.b.x - seg.a.x;
+          const dy = seg.b.y - seg.a.y;
+          const lenSq = dx * dx + dy * dy;
+          const t = ((w.position.x - seg.a.x) * dx + (w.position.y - seg.a.y) * dy) / lenSq;
+          const projX = seg.a.x + t * dx;
+          const projY = seg.a.y + t * dy;
+          const dist = Math.hypot(w.position.x - projX, w.position.y - projY);
+          if (dist < 0.3 && t > 0 && t < 1) {
+            const half = w.width / 2 / len;
+            win = { posT: Math.max(0, t - half), width: w.width };
+            break;
+          }
+        }
+      }
+      drawWall(ctx, seg.a.x, seg.a.y, seg.b.x, seg.b.y, defaultHeight, defaultMat, side, door, win, sorted[0]?.door);
+    }
+  }
+
+  // 4) 벽 상단 캡
+  for (const room of sorted) {
+    drawWallTopCaps(ctx, room);
+  }
+}

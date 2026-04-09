@@ -1,0 +1,320 @@
+'use client';
+
+import { useState, useEffect, useRef, useCallback } from 'react';
+import type { FloorPlan, PartType, MaterialAssignment } from '@/types/room';
+import type { Material } from '@/types/material';
+import type { Selection } from '@/lib/renderer';
+import type { CameraState } from '@/types/project';
+import { IsometricCanvas } from '@/components/canvas/IsometricCanvas';
+import { MaterialPanel } from '@/components/ui/MaterialPanel';
+import { ExportButton } from './ExportButton';
+import { AiRenderPanel } from '@/components/ai/AiRenderPanel';
+import { Sparkles, Palette } from 'lucide-react';
+
+type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
+
+function toAssignment(m: Material): MaterialAssignment {
+  return {
+    materialId: m.id,
+    color: m.colorHex,
+    patternType: m.patternType,
+    textureUrl: m.textureUrl,
+    tileSize: m.tileSizeMm,
+  };
+}
+
+export function EditorCanvas({
+  floorPlan: initial,
+  projectId,
+  projectName,
+  initialCamera,
+}: {
+  floorPlan: FloorPlan;
+  projectId: string;
+  projectName: string;
+  initialCamera?: CameraState;
+}) {
+  // 기존 프로젝트 정규화
+  // 1) 좌표가 이상하게 큰 경우(mm 단위 등) 자동 축소
+  let coordScale = 1;
+  let gMinX = Infinity,
+    gMinY = Infinity,
+    gMaxX = -Infinity,
+    gMaxY = -Infinity;
+  for (const r of initial.rooms) {
+    for (const p of r.points) {
+      if (p.x < gMinX) gMinX = p.x;
+      if (p.y < gMinY) gMinY = p.y;
+      if (p.x > gMaxX) gMaxX = p.x;
+      if (p.y > gMaxY) gMaxY = p.y;
+    }
+  }
+  const globalLong = Math.max(gMaxX - gMinX, gMaxY - gMinY);
+  if (globalLong > 500) coordScale = 0.001;
+  else if (globalLong > 50) coordScale = 0.01;
+
+  const normalized: FloorPlan = {
+    ...initial,
+    doors: (initial.doors ?? []).map((d) => ({
+      ...d,
+      position: { x: d.position.x * coordScale, y: d.position.y * coordScale },
+    })),
+    windows: (initial.windows ?? []).map((w) => ({
+      ...w,
+      position: { x: w.position.x * coordScale, y: w.position.y * coordScale },
+    })),
+    internalWalls: (initial.internalWalls ?? []).map((s) => ({
+      a: { x: s.a.x * coordScale, y: s.a.y * coordScale },
+      b: { x: s.b.x * coordScale, y: s.b.y * coordScale },
+    })),
+    rooms: initial.rooms.map((r) => {
+      const rescaled = {
+        ...r,
+        points: r.points.map((p) => ({ x: p.x * coordScale, y: p.y * coordScale })),
+      };
+      const r2 = rescaled;
+      let minX = Infinity,
+        minY = Infinity,
+        maxX = -Infinity,
+        maxY = -Infinity;
+      for (const p of r2.points) {
+        if (p.x < minX) minX = p.x;
+        if (p.y < minY) minY = p.y;
+        if (p.x > maxX) maxX = p.x;
+        if (p.y > maxY) maxY = p.y;
+      }
+      const shortSide = Math.min(maxX - minX, maxY - minY);
+      // 벽 높이는 3m 고정 (폴리곤 축소 후이므로)
+      const adaptiveHeight = Math.max(2.7, Math.min(3.5, shortSide * 0.15 || 3));
+      return {
+        ...r2,
+        wallHeight: adaptiveHeight,
+        floor: { ...r2.floor, color: '#d4c5a9', patternType: r2.floor?.patternType || 'solid', materialId: r2.floor?.materialId || '' },
+        wall: { ...r2.wall, color: '#ece6dc', patternType: r2.wall?.patternType || 'solid', materialId: r2.wall?.materialId || '' },
+        baseboard: { ...r2.baseboard, color: '#8b7355', patternType: r2.baseboard?.patternType || 'solid', materialId: r2.baseboard?.materialId || '' },
+        ceiling: { ...r2.ceiling, color: '#f5f0e8', patternType: r2.ceiling?.patternType || 'solid', materialId: r2.ceiling?.materialId || '' },
+        door: r2.door?.color
+          ? r2.door
+          : { materialId: '', color: '#6B4C3B', patternType: 'solid' as const },
+      };
+    }),
+  };
+  const [floorPlan, setFloorPlan] = useState<FloorPlan>(normalized);
+  const [selection, setSelection] = useState<Selection | null>(null);
+  const [status, setStatus] = useState<SaveStatus>('idle');
+  const [aiOpen, setAiOpen] = useState(false);
+
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const statusTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isDirty = useRef(false);
+  const latestPlan = useRef(floorPlan);
+  const latestCamera = useRef<CameraState | undefined>(initialCamera);
+  const mountedRef = useRef(true);
+
+  // render-phase mutation 대신 effect로 (H3)
+  useEffect(() => {
+    latestPlan.current = floorPlan;
+  }, [floorPlan]);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
+  const initCam =
+    initialCamera && typeof initialCamera.zoom === 'number'
+      ? { x: initialCamera.offsetX, y: initialCamera.offsetY, zoom: initialCamera.zoom }
+      : undefined;
+
+  const selectedRoom = floorPlan.rooms.find((r) => r.id === selection?.roomId);
+
+  const safeSetStatus = useCallback((s: SaveStatus) => {
+    if (mountedRef.current) setStatus(s);
+  }, []);
+
+  const flush = useCallback(
+    async (useKeepalive = false) => {
+      if (!isDirty.current) return;
+      isDirty.current = false;
+      safeSetStatus('saving');
+
+      const payload = JSON.stringify({
+        rooms_data: latestPlan.current,
+        camera_state: latestCamera.current ?? {},
+      });
+
+      try {
+        if (useKeepalive) {
+          // 페이지 이탈 시: fetch keepalive로 네트워크 보장
+          await fetch(`/api/iso-projects/${projectId}/save`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: payload,
+            keepalive: true,
+          });
+        } else {
+          const res = await fetch(`/api/iso-projects/${projectId}/save`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: payload,
+          });
+          if (!res.ok) throw new Error('save failed');
+        }
+        safeSetStatus('saved');
+        if (statusTimer.current) clearTimeout(statusTimer.current);
+        statusTimer.current = setTimeout(() => {
+          if (mountedRef.current) setStatus((s) => (s === 'saved' ? 'idle' : s));
+        }, 1500);
+      } catch {
+        isDirty.current = true;
+        safeSetStatus('error');
+      }
+    },
+    [projectId, safeSetStatus]
+  );
+
+  const scheduleSave = useCallback(() => {
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => flush(false), 600);
+  }, [flush]);
+
+  // visibilitychange: 탭 숨김 시 keepalive flush
+  useEffect(() => {
+    const onHide = () => {
+      if (document.visibilityState === 'hidden' && isDirty.current) {
+        flush(true);
+      }
+    };
+    document.addEventListener('visibilitychange', onHide);
+    return () => document.removeEventListener('visibilitychange', onHide);
+  }, [flush]);
+
+  // unmount cleanup: 타이머 정리 + 미저장 flush
+  useEffect(() => {
+    return () => {
+      if (saveTimer.current) clearTimeout(saveTimer.current);
+      if (statusTimer.current) clearTimeout(statusTimer.current);
+      if (isDirty.current) flush(true);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // beforeunload 경고
+  useEffect(() => {
+    const handler = (e: BeforeUnloadEvent) => {
+      if (isDirty.current || status === 'saving') {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [status]);
+
+  const handleApply = (part: PartType, material: Material) => {
+    if (!selection) return;
+    isDirty.current = true;
+    setFloorPlan((prev) => ({
+      ...prev,
+      rooms: prev.rooms.map((r) =>
+        r.id === selection.roomId ? { ...r, [part]: toAssignment(material) } : r
+      ),
+    }));
+    scheduleSave();
+  };
+
+  // 카메라 변경 핸들러 — 첫 마운트(초기 camera 세팅) 이벤트는 skip (C2, M6)
+  const cameraInited = useRef(false);
+  const handleCameraChange = useCallback(
+    (cam: { x: number; y: number; zoom: number }) => {
+      latestCamera.current = { zoom: cam.zoom, offsetX: cam.x, offsetY: cam.y };
+      if (!cameraInited.current) {
+        cameraInited.current = true;
+        return;
+      }
+      isDirty.current = true;
+      scheduleSave();
+    },
+    [scheduleSave]
+  );
+
+  const statusLabel =
+    status === 'saving'
+      ? '저장 중...'
+      : status === 'saved'
+      ? '저장됨'
+      : status === 'error'
+      ? '저장 실패 — 변경 시 재시도됩니다'
+      : '';
+
+  return (
+    <div className="flex-1 flex flex-col relative">
+      <div className="absolute top-3 right-3 z-20 flex gap-2">
+        {floorPlan.rooms.length > 0 && (
+          <button
+            onClick={() =>
+              setSelection({ roomId: floorPlan.rooms[0].id, part: 'floor' })
+            }
+            className="flex items-center gap-1.5 rounded-lg bg-white text-neutral-900 border border-neutral-200 px-3 py-1.5 text-xs font-medium hover:bg-neutral-50 shadow-sm"
+          >
+            <Palette size={14} /> 마감재
+          </button>
+        )}
+        <button
+          onClick={() => setAiOpen(true)}
+          className="flex items-center gap-1.5 rounded-lg bg-yellow-500 text-neutral-900 px-3 py-1.5 text-xs font-bold hover:bg-yellow-400 shadow-sm"
+        >
+          <Sparkles size={14} /> AI 렌더링
+        </button>
+        <ExportButton floorPlan={floorPlan} projectName={projectName} />
+      </div>
+      <IsometricCanvas
+        floorPlan={floorPlan}
+        selection={selection}
+        onSelect={setSelection}
+        initialCamera={initCam}
+        onCameraChange={handleCameraChange}
+      />
+      <div className="border-t border-neutral-200 bg-white px-4 py-2 text-xs text-neutral-600 flex items-center justify-between">
+        <span>
+          {selectedRoom
+            ? `${selectedRoom.name} 선택됨 — 자재를 선택하여 적용하세요`
+            : '영역을 클릭(또는 탭)하여 선택하세요'}
+        </span>
+        {statusLabel && (
+          <span
+            className={
+              status === 'error'
+                ? 'text-red-600'
+                : status === 'saved'
+                ? 'text-green-600'
+                : 'text-neutral-400'
+            }
+          >
+            {statusLabel}
+          </span>
+        )}
+      </div>
+
+      {aiOpen && (
+        <AiRenderPanel
+          floorPlan={floorPlan}
+          projectId={projectId}
+          onClose={() => setAiOpen(false)}
+        />
+      )}
+
+      {selectedRoom && selection && (
+        <MaterialPanel
+          key={selection.roomId}
+          room={selectedRoom}
+          initialPart={selection.part}
+          onApply={handleApply}
+          onClose={() => setSelection(null)}
+        />
+      )}
+    </div>
+  );
+}
