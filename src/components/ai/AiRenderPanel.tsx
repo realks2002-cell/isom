@@ -39,7 +39,7 @@ export function AiRenderPanel({ floorPlan, projectId, onClose }: Props) {
   const [remaining, setRemaining] = useState<number | null>(null);
 
   const run = async () => {
-    if (!confirm('AI 렌더링 1회가 차감됩니다. 진행할까요?')) return;
+    if (!confirm('렌더링 1회가 차감됩니다. 진행할까요?')) return;
     setError(null);
     setLoading(true);
     try {
@@ -58,11 +58,11 @@ export function AiRenderPanel({ floorPlan, projectId, onClose }: Props) {
         }),
       });
       const json = await res.json();
-      if (!res.ok) throw new Error(json.error || 'AI 렌더링 실패');
+      if (!res.ok) throw new Error(json.error || '렌더링 실패');
       setResultUrl(`data:image/png;base64,${json.imageBase64}`);
       if (typeof json.remaining === 'number') setRemaining(json.remaining);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'AI 렌더링 실패');
+      setError(e instanceof Error ? e.message : '렌더링 실패');
     } finally {
       setLoading(false);
     }
@@ -73,7 +73,7 @@ export function AiRenderPanel({ floorPlan, projectId, onClose }: Props) {
       <header className="flex items-center justify-between px-4 py-3 bg-neutral-900 text-white">
         <div className="flex items-center gap-2">
           <Sparkles size={18} className="text-yellow-400" />
-          <h2 className="font-bold text-sm">AI 포토리얼 렌더링</h2>
+          <h2 className="font-bold text-sm">포토리얼 렌더링</h2>
         </div>
         <button
           onClick={onClose}
@@ -167,7 +167,7 @@ export function AiRenderPanel({ floorPlan, projectId, onClose }: Props) {
               <Sparkles size={16} /> 렌더링 시작
             </button>
             <p className="text-[11px] text-neutral-500 text-center">
-              5~15초 소요 · AI 렌더링 1회 차감
+              5~15초 소요 · 렌더링 1회 차감
             </p>
           </div>
         )}
@@ -175,7 +175,7 @@ export function AiRenderPanel({ floorPlan, projectId, onClose }: Props) {
         {loading && (
           <div className="flex flex-col items-center gap-3 text-white">
             <Loader2 size={36} className="animate-spin" />
-            <p className="text-sm">AI가 렌더링 중입니다... (5~15초)</p>
+            <p className="text-sm">렌더링 중입니다... (5~15초)</p>
           </div>
         )}
 
@@ -189,7 +189,7 @@ export function AiRenderPanel({ floorPlan, projectId, onClose }: Props) {
                 style={{ width: `${compare}%` }}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={resultUrl} alt="AI 렌더링" className="w-full block" />
+                <img src={resultUrl} alt="렌더링" className="w-full block" />
               </div>
               <div
                 className="absolute inset-y-0 w-0.5 bg-white shadow-lg pointer-events-none"

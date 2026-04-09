@@ -266,7 +266,7 @@ export function EditorCanvas({
           onClick={() => setAiOpen(true)}
           className="flex items-center gap-1.5 rounded-lg bg-yellow-500 text-neutral-900 px-3 py-1.5 text-xs font-bold hover:bg-yellow-400 shadow-sm"
         >
-          <Sparkles size={14} /> AI 렌더링
+          <Sparkles size={14} /> 렌더링
         </button>
         <ExportButton floorPlan={floorPlan} projectName={projectName} />
       </div>
