@@ -53,10 +53,12 @@ function drawWall(
   y2: number,
   height: number,
   mat: MaterialAssignment,
+  baseboardMat: MaterialAssignment,
   side: WallSide['side'],
   door: { posT: number; width: number } | null,
   win: { posT: number; width: number } | null,
-  doorMat?: MaterialAssignment
+  doorMat?: MaterialAssignment,
+  highlightDoor?: boolean
 ) {
   const h = height * SCALE;
   const bp1 = toIso(x1, y1);
@@ -142,6 +144,20 @@ function drawWall(
     ctx.strokeStyle = darken(doorMat?.color ?? mat.color, 0.5);
     ctx.lineWidth = 1.2;
     ctx.stroke();
+
+    if (highlightDoor) {
+      ctx.beginPath();
+      ctx.moveTo(db1.x, db1.y);
+      ctx.lineTo(db1.x, db1.y - doorH);
+      ctx.lineTo(db2.x, db2.y - doorH);
+      ctx.lineTo(db2.x, db2.y);
+      ctx.closePath();
+      ctx.fillStyle = 'rgba(233,69,96,0.5)';
+      ctx.fill();
+      ctx.strokeStyle = '#e94560';
+      ctx.lineWidth = 3;
+      ctx.stroke();
+    }
   }
 
   // 벽 상단 강조 라인
@@ -152,7 +168,7 @@ function drawWall(
   ctx.lineWidth = 2;
   ctx.stroke();
 
-  // 걸레받이 (벽 색과 구분되도록 darken 0.45)
+  // 걸레받이 — room.baseboard 자재 사용
   const bbH = h * 0.05;
   ctx.beginPath();
   ctx.moveTo(bp1.x, bp1.y);
@@ -160,7 +176,7 @@ function drawWall(
   ctx.lineTo(bp2.x, bp2.y - bbH);
   ctx.lineTo(bp2.x, bp2.y);
   ctx.closePath();
-  ctx.fillStyle = darken(mat.color, 0.45);
+  ctx.fillStyle = baseboardMat.color;
   ctx.fill();
   ctx.strokeStyle = 'rgba(30,30,30,0.6)';
   ctx.lineWidth = 0.8;
@@ -287,8 +303,10 @@ export function render(ctx: CanvasRenderingContext2D, state: RenderState) {
       ctx.beginPath();
       iso.forEach((p, i) => (i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y)));
       ctx.closePath();
+      ctx.fillStyle = 'rgba(233,69,96,0.45)';
+      ctx.fill();
       ctx.strokeStyle = '#e94560';
-      ctx.lineWidth = 2;
+      ctx.lineWidth = 4;
       ctx.stroke();
     }
 
@@ -309,7 +327,31 @@ export function render(ctx: CanvasRenderingContext2D, state: RenderState) {
       const side = classifySide(p2.x - p1.x, p2.y - p1.y);
       const door = matchDoorForSegment(floorPlan.doors, p1.x, p1.y, p2.x, p2.y);
       const win = matchWindowForSegment(floorPlan.windows, room.id, p1.x, p1.y, p2.x, p2.y);
-      drawWall(ctx, p1.x, p1.y, p2.x, p2.y, room.wallHeight, room.wall, side, door, win, room.door);
+      const highlightDoor = selection?.roomId === room.id && selection.part === 'door';
+      drawWall(ctx, p1.x, p1.y, p2.x, p2.y, room.wallHeight, room.wall, room.baseboard, side, door, win, room.door, highlightDoor);
+    }
+
+    // 벽/걸레받이 선택 하이라이트 — 각 벽 사다리꼴 윤곽선
+    if (selection?.roomId === room.id && (selection.part === 'wall' || selection.part === 'baseboard')) {
+      for (let i = 0; i < pts.length; i++) {
+        const p1 = pts[i];
+        const p2 = pts[(i + 1) % pts.length];
+        const b1 = toIso(p1.x, p1.y);
+        const b2 = toIso(p2.x, p2.y);
+        const t1 = toIso(p1.x, p1.y, room.wallHeight);
+        const t2 = toIso(p2.x, p2.y, room.wallHeight);
+        ctx.beginPath();
+        ctx.moveTo(b1.x, b1.y);
+        ctx.lineTo(b2.x, b2.y);
+        ctx.lineTo(t2.x, t2.y);
+        ctx.lineTo(t1.x, t1.y);
+        ctx.closePath();
+        ctx.fillStyle = 'rgba(233,69,96,0.2)';
+        ctx.fill();
+        ctx.strokeStyle = '#e94560';
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
+      }
     }
   }
 
@@ -350,12 +392,28 @@ export function render(ctx: CanvasRenderingContext2D, state: RenderState) {
           }
         }
       }
-      drawWall(ctx, seg.a.x, seg.a.y, seg.b.x, seg.b.y, defaultHeight, defaultMat, side, door, win, sorted[0]?.door);
+      drawWall(ctx, seg.a.x, seg.a.y, seg.b.x, seg.b.y, defaultHeight, defaultMat, sorted[0]?.baseboard ?? defaultMat, side, door, win, sorted[0]?.door);
     }
   }
 
   // 4) 벽 상단 캡
   for (const room of sorted) {
     drawWallTopCaps(ctx, room);
+  }
+
+  // 5) 천장 — 선택됐을 때만 표시 (평소엔 시야를 가리지 않도록)
+  if (selection?.part === 'ceiling') {
+    for (const room of sorted) {
+      if (selection.roomId !== room.id) continue;
+      const ceilingPts = room.points.map((p) => toIso(p.x, p.y, room.wallHeight));
+      ctx.beginPath();
+      ceilingPts.forEach((p, i) => (i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y)));
+      ctx.closePath();
+      ctx.fillStyle = room.ceiling?.color ?? '#f5f5f5';
+      ctx.fill();
+      ctx.strokeStyle = '#e94560';
+      ctx.lineWidth = 3;
+      ctx.stroke();
+    }
   }
 }

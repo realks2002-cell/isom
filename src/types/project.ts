@@ -25,6 +25,13 @@ export interface Project {
   materialsConfig: MaterialsConfig;
   cameraState: CameraState;
   thumbnailUrl?: string;
+  folderId?: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface Folder {
+  id: string;
+  name: string;
+  color?: string | null;
 }

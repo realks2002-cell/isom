@@ -9,6 +9,12 @@ export function DashboardHeader({ email }: { email: string }) {
         </Link>
         <div className="flex items-center gap-3">
           <span className="text-xs text-neutral-600 hidden sm:inline">{email}</span>
+          <Link
+            href="/account/delete"
+            className="text-xs text-neutral-500 hover:text-red-600"
+          >
+            계정삭제
+          </Link>
           <form action="/auth/signout" method="post">
             <button
               type="submit"

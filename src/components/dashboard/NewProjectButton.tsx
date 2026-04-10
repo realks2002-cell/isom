@@ -4,7 +4,7 @@ import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 
-export function NewProjectButton() {
+export function NewProjectButton({ folderId }: { folderId?: string | null }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState('');
@@ -23,7 +23,11 @@ export function NewProjectButton() {
 
       const { data, error } = await supabase
         .from('iso_projects')
-        .insert({ user_id: user.id, name: name.trim() })
+        .insert({
+          user_id: user.id,
+          name: name.trim(),
+          folder_id: folderId ?? null,
+        })
         .select('id')
         .single();
 

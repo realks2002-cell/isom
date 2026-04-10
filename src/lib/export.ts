@@ -94,11 +94,50 @@ const IS_IOS =
 
 export type ShareResult = 'shared' | 'downloaded' | 'canceled';
 
+async function blobToBase64(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const result = reader.result as string;
+      resolve(result.split(',')[1]);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
+async function shareNative(
+  blob: Blob,
+  filename: string,
+  title: string
+): Promise<ShareResult> {
+  const { Filesystem, Directory } = await import('@capacitor/filesystem');
+  const { Share } = await import('@capacitor/share');
+  const data = await blobToBase64(blob);
+  const saved = await Filesystem.writeFile({
+    path: filename,
+    data,
+    directory: Directory.Cache,
+  });
+  try {
+    await Share.share({ title, url: saved.uri, dialogTitle: title });
+    return 'shared';
+  } catch (e) {
+    if ((e as Error)?.message?.includes('cancel')) return 'canceled';
+    return 'downloaded';
+  }
+}
+
 export async function sharePng(
   blob: Blob,
   filename: string,
   title: string
 ): Promise<ShareResult> {
+  const { isNative } = await import('./platform');
+  if (isNative()) {
+    return shareNative(blob, filename, title);
+  }
+
   const file = new File([blob], filename, { type: 'image/png' });
 
   if (

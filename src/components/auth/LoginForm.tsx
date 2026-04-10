@@ -73,7 +73,7 @@ export function LoginForm() {
       className="space-y-4 rounded-2xl bg-white p-6 shadow-sm border border-neutral-200"
     >
       <div>
-        <label className="block text-sm font-medium mb-1">ID</label>
+        <label className="block text-sm font-semibold text-neutral-900 mb-1">ID</label>
         <input
           type="text"
           required
@@ -81,11 +81,11 @@ export function LoginForm() {
           value={userId}
           onChange={(e) => setUserId(e.target.value)}
           className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-900"
-          placeholder="admin"
+          placeholder="6자 이상"
         />
       </div>
       <div>
-        <label className="block text-sm font-medium mb-1">비밀번호</label>
+        <label className="block text-sm font-semibold text-neutral-900 mb-1">비밀번호</label>
         <input
           type="password"
           required

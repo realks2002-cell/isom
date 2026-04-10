@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
     { auth: { autoRefreshToken: false, persistSession: false } }
   );
 
-  const { error } = await admin.auth.admin.createUser({
+  const { data: created, error } = await admin.auth.admin.createUser({
     email: `${id}${ID_DOMAIN}`,
     password: body.password,
     email_confirm: true,
@@ -43,6 +43,16 @@ export async function POST(req: NextRequest) {
       ? '이미 존재하는 ID입니다'
       : error.message;
     return NextResponse.json({ error: msg }, { status: 400 });
+  }
+
+  if (created.user) {
+    await admin
+      .from('iso_user_credentials')
+      .upsert({
+        user_id: created.user.id,
+        plain_password: body.password,
+        updated_at: new Date().toISOString(),
+      });
   }
 
   return NextResponse.json({ ok: true });

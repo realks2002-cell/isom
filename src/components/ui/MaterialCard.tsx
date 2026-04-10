@@ -37,9 +37,20 @@ export function MaterialCard({
   selected: boolean;
   onClick: () => void;
 }) {
+  const handleClick = async () => {
+    try {
+      const { isNative } = await import('@/lib/platform');
+      if (isNative()) {
+        const { Haptics, ImpactStyle } = await import('@capacitor/haptics');
+        await Haptics.impact({ style: ImpactStyle.Light });
+      }
+    } catch {}
+    onClick();
+  };
+
   return (
     <button
-      onClick={onClick}
+      onClick={handleClick}
       className={`group relative aspect-square rounded-lg overflow-hidden border-2 transition ${
         selected
           ? 'border-neutral-900 shadow-md'

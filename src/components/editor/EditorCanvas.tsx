@@ -273,14 +273,25 @@ export function EditorCanvas({
       <IsometricCanvas
         floorPlan={floorPlan}
         selection={selection}
-        onSelect={setSelection}
+        onSelect={(sel) => {
+          // null(빈 공간 클릭)은 무시 — 패널은 X 버튼으로만 닫힘
+          if (sel) setSelection(sel);
+        }}
         initialCamera={initCam}
         onCameraChange={handleCameraChange}
       />
       <div className="border-t border-neutral-200 bg-white px-4 py-2 text-xs text-neutral-600 flex items-center justify-between">
         <span>
-          {selectedRoom
-            ? `${selectedRoom.name} 선택됨 — 자재를 선택하여 적용하세요`
+          {selectedRoom && selection
+            ? `${selectedRoom.name} · ${
+                {
+                  floor: '바닥',
+                  wall: '벽',
+                  baseboard: '걸레받이',
+                  ceiling: '천장',
+                  door: '도어',
+                }[selection.part]
+              } 선택됨 — 자재를 적용하세요`
             : '영역을 클릭(또는 탭)하여 선택하세요'}
         </span>
         {statusLabel && (

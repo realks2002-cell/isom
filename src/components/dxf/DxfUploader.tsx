@@ -17,19 +17,76 @@ export function DxfUploader({ projectId }: { projectId: string }) {
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
+  const readFileAsText = async (file: File): Promise<{ text: string; method: string; bytes: number }> => {
+    // 방법 1: arrayBuffer + TextDecoder
+    try {
+      const buf = await file.arrayBuffer();
+      if (buf.byteLength > 0) {
+        let text: string;
+        try {
+          text = new TextDecoder('utf-8', { fatal: true }).decode(buf);
+        } catch {
+          try {
+            text = new TextDecoder('euc-kr').decode(buf);
+          } catch {
+            text = new TextDecoder('windows-1252').decode(buf);
+          }
+        }
+        if (text.charCodeAt(0) === 0xfeff) text = text.slice(1);
+        if (text.trim().length > 0) return { text, method: 'arrayBuffer', bytes: buf.byteLength };
+      }
+    } catch {}
+
+    // 방법 2: file.text() 직접 호출
+    try {
+      const text = await file.text();
+      if (text && text.trim().length > 0) {
+        return { text, method: 'file.text', bytes: text.length };
+      }
+    } catch {}
+
+    // 방법 3: FileReader (가장 오래된 API, Android WebView에서 가장 호환성 높음)
+    const reader = new FileReader();
+    const text = await new Promise<string>((resolve, reject) => {
+      reader.onload = () => resolve((reader.result as string) || '');
+      reader.onerror = () => reject(new Error('FileReader 실패'));
+      reader.readAsText(file, 'utf-8');
+    });
+    return { text, method: 'FileReader', bytes: text.length };
+  };
+
   const handleFile = async (file: File) => {
     setError(null);
     setFileName(file.name);
+    const sizeKB = Math.round(file.size / 1024);
     try {
-      const text = await file.text();
-      const result = parseDxf(text);
-      setParsed(result);
-      setFileText(text);
-      const init: LayerMapping = {};
-      for (const l of result.layers) init[l.name] = l.autoMapped;
-      setMapping(init);
+      const { text, method, bytes } = await readFileAsText(file);
+
+      if (!text || text.trim().length === 0) {
+        throw new Error(`파일 내용 없음 (size=${sizeKB}KB, method=${method}, bytes=${bytes})`);
+      }
+
+      // 진단: DXF의 첫 몇 줄이 제대로 왔는지 확인
+      const head = text.slice(0, 200).replace(/\s+/g, ' ').trim();
+      const hasSection = text.includes('SECTION');
+      const hasEof = text.includes('EOF');
+
+      try {
+        const result = parseDxf(text);
+        setParsed(result);
+        setFileText(text);
+        const init: LayerMapping = {};
+        for (const l of result.layers) init[l.name] = l.autoMapped;
+        setMapping(init);
+      } catch (parseErr) {
+        const pm = parseErr instanceof Error ? parseErr.message : String(parseErr);
+        throw new Error(
+          `파싱 실패 [${pm}] | ${sizeKB}KB, ${bytes}b, ${method}, SEC=${hasSection}, EOF=${hasEof} | head="${head.slice(0, 80)}"`
+        );
+      }
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'DXF 파싱 실패');
+      const msg = e instanceof Error ? e.message : String(e);
+      setError(`DXF 오류: ${msg}`);
     }
   };
 
@@ -54,7 +111,12 @@ export function DxfUploader({ projectId }: { projectId: string }) {
         .from('iso-dxf-files')
         .upload(path, new Blob([fileText], { type: 'application/dxf' }));
       if (upload.error) {
-        setError('파일 업로드 실패: ' + upload.error.message);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const err: any = upload.error;
+        setError(
+          `파일 업로드 실패: ${err.message} | name=${err.name ?? '?'} | status=${err.statusCode ?? err.status ?? '?'} | bucket=iso-dxf-files | path=${path}`
+        );
+        console.error('[DXF Upload Error]', err);
         return;
       }
 

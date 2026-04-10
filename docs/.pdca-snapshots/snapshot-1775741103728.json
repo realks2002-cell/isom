@@ -1,0 +1,1471 @@
+{
+  "timestamp": "2026-04-09T13:25:03.727Z",
+  "reason": "compaction",
+  "status": {
+    "version": "2.0",
+    "lastUpdated": "2026-04-09T13:24:05.368Z",
+    "activeFeatures": [
+      "supabase",
+      "isometrix",
+      "auth",
+      "signout",
+      "dashboard",
+      "layout",
+      "[projectId]",
+      "dxf",
+      "canvas",
+      "editor",
+      "ui",
+      "materials",
+      "save",
+      "ai-render",
+      "ai",
+      "signup",
+      "assets",
+      "interiorsim"
+    ],
+    "primaryFeature": "supabase",
+    "features": {
+      "supabase": {
+        "phase": "do",
+        "phaseNumber": 3,
+        "matchRate": null,
+        "iterationCount": 0,
+        "requirements": [],
+        "documents": {},
+        "timestamps": {
+          "started": "2026-04-09T09:38:28.691Z",
+          "lastUpdated": "2026-04-09T10:24:48.112Z"
+        },
+        "lastFile": "/Users/kenny/Desktop/Task/isometrix/src/lib/supabase/middleware.ts"
+      },
+      "isometrix": {
+        "phase": "do",
+        "phaseNumber": 3,
+        "matchRate": null,
+        "iterationCount": 0,
+        "requirements": [],
+        "documents": {},
+        "timestamps": {
+          "started": "2026-04-09T09:38:38.954Z",
+          "lastUpdated": "2026-04-09T13:12:31.404Z"
+        },
+        "lastFile": "/Users/kenny/Desktop/Task/isometrix/capacitor.config.ts"
+      },
+      "auth": {
+        "phase": "do",
+        "phaseNumber": 3,
+        "matchRate": null,
+        "iterationCount": 0,
+        "requirements": [],
+        "documents": {},
+        "timestamps": {
+          "started": "2026-04-09T09:39:50.564Z",
+          "lastUpdated": "2026-04-09T11:44:23.052Z"
+        },
+        "lastFile": "/Users/kenny/Desktop/Task/isometrix/src/components/auth/LoginForm.tsx"
+      },
+      "signout": {
+        "phase": "do",
+        "phaseNumber": 3,
+        "matchRate": null,
+        "iterationCount": 0,
+        "requirements": [],
+        "documents": {},
+        "timestamps": {
+          "started": "2026-04-09T09:39:52.415Z",
+          "lastUpdated": "2026-04-09T09:39:52.415Z"
+        },
+        "lastFile": "/Users/kenny/Desktop/Task/isometrix/src/app/auth/signout/route.ts"
+      },
+      "dashboard": {
+        "phase": "do",
+        "phaseNumber": 3,
+        "matchRate": null,
+        "iterationCount": 0,
+        "requirements": [],
+        "documents": {},
+        "timestamps": {
+          "started": "2026-04-09T09:40:04.496Z",
+          "lastUpdated": "2026-04-09T12:45:38.518Z"
+        },
+        "lastFile": "/Users/kenny/Desktop/Task/isometrix/src/app/dashboard/page.tsx"
+      },
+      "layout": {
+        "phase": "do",
+        "phaseNumber": 3,
+        "matchRate": null,
+        "iterationCount": 0,
+        "requirements": [],
+        "documents": {},
+        "timestamps": {
+          "started": "2026-04-09T09:40:08.224Z",
+          "lastUpdated": "2026-04-09T09:40:08.224Z"
+        },
+        "lastFile": "/Users/kenny/Desktop/Task/isometrix/src/components/layout/DashboardHeader.tsx"
+      },
+      "[projectId]": {
+        "phase": "do",
+        "phaseNumber": 3,
+        "matchRate": null,
+        "iterationCount": 0,
+        "requirements": [],
+        "documents": {},
+        "timestamps": {
+          "started": "2026-04-09T09:40:34.274Z",
+          "lastUpdated": "2026-04-09T10:18:07.039Z"
+        },
+        "lastFile": "/Users/kenny/Desktop/Task/isometrix/src/app/editor/[projectId]/page.tsx"
+      },
+      "dxf": {
+        "phase": "do",
+        "phaseNumber": 3,
+        "matchRate": null,
+        "iterationCount": 0,
+        "requirements": [],
+        "documents": {},
+        "timestamps": {
+          "started": "2026-04-09T09:48:09.975Z",
+          "lastUpdated": "2026-04-09T10:16:05.480Z"
+        },
+        "lastFile": "/Users/kenny/Desktop/Task/isometrix/src/lib/dxf/parser.ts"
+      },
+      "canvas": {
+        "phase": "do",
+        "phaseNumber": 3,
+        "matchRate": null,
+        "iterationCount": 0,
+        "requirements": [],
+        "documents": {},
+        "timestamps": {
+          "started": "2026-04-09T09:57:23.286Z",
+          "lastUpdated": "2026-04-09T11:05:35.108Z"
+        },
+        "lastFile": "/Users/kenny/Desktop/Task/isometrix/src/components/canvas/IsometricCanvas.tsx"
+      },
+      "editor": {
+        "phase": "do",
+        "phaseNumber": 3,
+        "matchRate": null,
+        "iterationCount": 0,
+        "requirements": [],
+        "documents": {},
+        "timestamps": {
+          "started": "2026-04-09T09:57:31.413Z",
+          "lastUpdated": "2026-04-09T11:44:04.851Z"
+        },
+        "lastFile": "/Users/kenny/Desktop/Task/isometrix/src/components/editor/EditorCanvas.tsx"
+      },
+      "ui": {
+        "phase": "do",
+        "phaseNumber": 3,
+        "matchRate": null,
+        "iterationCount": 0,
+        "requirements": [],
+        "documents": {},
+        "timestamps": {
+          "started": "2026-04-09T10:03:27.451Z",
+          "lastUpdated": "2026-04-09T11:17:50.762Z"
+        },
+        "lastFile": "/Users/kenny/Desktop/Task/isometrix/src/components/ui/PartSelector.tsx"
+      },
+      "materials": {
+        "phase": "do",
+        "phaseNumber": 3,
+        "matchRate": null,
+        "iterationCount": 0,
+        "requirements": [],
+        "documents": {},
+        "timestamps": {
+          "started": "2026-04-09T10:04:18.003Z",
+          "lastUpdated": "2026-04-09T10:15:53.361Z"
+        },
+        "lastFile": "/Users/kenny/Desktop/Task/isometrix/src/app/admin/materials/DeleteMaterialButton.tsx"
+      },
+      "save": {
+        "phase": "do",
+        "phaseNumber": 3,
+        "matchRate": null,
+        "iterationCount": 0,
+        "requirements": [],
+        "documents": {},
+        "timestamps": {
+          "started": "2026-04-09T10:23:50.562Z",
+          "lastUpdated": "2026-04-09T10:23:50.562Z"
+        },
+        "lastFile": "/Users/kenny/Desktop/Task/isometrix/src/app/api/iso-projects/[id]/save/route.ts"
+      },
+      "ai-render": {
+        "phase": "do",
+        "phaseNumber": 3,
+        "matchRate": null,
+        "iterationCount": 0,
+        "requirements": [],
+        "documents": {},
+        "timestamps": {
+          "started": "2026-04-09T10:26:58.863Z",
+          "lastUpdated": "2026-04-09T11:14:15.606Z"
+        },
+        "lastFile": "/Users/kenny/Desktop/Task/isometrix/src/app/api/ai-render/route.ts"
+      },
+      "ai": {
+        "phase": "do",
+        "phaseNumber": 3,
+        "matchRate": null,
+        "iterationCount": 0,
+        "requirements": [],
+        "documents": {},
+        "timestamps": {
+          "started": "2026-04-09T10:27:40.891Z",
+          "lastUpdated": "2026-04-09T11:44:15.525Z"
+        },
+        "lastFile": "/Users/kenny/Desktop/Task/isometrix/src/components/ai/AiRenderPanel.tsx"
+      },
+      "signup": {
+        "phase": "do",
+        "phaseNumber": 3,
+        "matchRate": null,
+        "iterationCount": 0,
+        "requirements": [],
+        "documents": {},
+        "timestamps": {
+          "started": "2026-04-09T10:40:59.125Z",
+          "lastUpdated": "2026-04-09T10:40:59.125Z"
+        },
+        "lastFile": "/Users/kenny/Desktop/Task/isometrix/src/app/api/auth/signup/route.ts"
+      },
+      "assets": {
+        "phase": "do",
+        "phaseNumber": 3,
+        "matchRate": null,
+        "iterationCount": 0,
+        "requirements": [],
+        "documents": {},
+        "timestamps": {
+          "started": "2026-04-09T12:02:27.276Z",
+          "lastUpdated": "2026-04-09T12:28:46.508Z"
+        },
+        "lastFile": "/Users/kenny/Desktop/Task/isometrix/android/app/src/main/assets/save-png.js"
+      },
+      "interiorsim": {
+        "phase": "do",
+        "phaseNumber": 3,
+        "matchRate": null,
+        "iterationCount": 0,
+        "requirements": [],
+        "documents": {},
+        "timestamps": {
+          "started": "2026-04-09T12:02:37.645Z",
+          "lastUpdated": "2026-04-09T13:24:05.368Z"
+        },
+        "lastFile": "/Users/kenny/Desktop/Task/isometrix/android/app/src/main/java/com/bizstart/interiorsim/SaveBridge.java"
+      }
+    },
+    "pipeline": {
+      "currentPhase": 1,
+      "level": "Dynamic",
+      "phaseHistory": []
+    },
+    "session": {
+      "startedAt": "2026-04-09T09:18:53.416Z",
+      "onboardingCompleted": false,
+      "lastActivity": "2026-04-09T13:24:05.368Z"
+    },
+    "history": [
+      {
+        "timestamp": "2026-04-09T09:38:28.691Z",
+        "feature": "supabase",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T09:38:32.006Z",
+        "feature": "supabase",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T09:38:36.212Z",
+        "feature": "supabase",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T09:38:38.954Z",
+        "feature": "isometrix",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T09:39:22.120Z",
+        "feature": "isometrix",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T09:39:23.507Z",
+        "feature": "isometrix",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T09:39:24.069Z",
+        "feature": "isometrix",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T09:39:36.570Z",
+        "feature": "isometrix",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T09:39:50.564Z",
+        "feature": "auth",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T09:39:52.415Z",
+        "feature": "signout",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T09:40:04.496Z",
+        "feature": "dashboard",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T09:40:08.224Z",
+        "feature": "layout",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T09:40:17.536Z",
+        "feature": "dashboard",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T09:40:21.635Z",
+        "feature": "dashboard",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T09:40:34.274Z",
+        "feature": "[projectId]",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T09:40:54.231Z",
+        "feature": "isometrix",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T09:48:09.975Z",
+        "feature": "dxf",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T09:48:44.366Z",
+        "feature": "isometrix",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T09:49:04.473Z",
+        "feature": "dxf",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T09:49:11.723Z",
+        "feature": "dxf",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T09:49:24.866Z",
+        "feature": "[projectId]",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T09:55:39.661Z",
+        "feature": "isometrix",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T09:56:06.455Z",
+        "feature": "isometrix",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T09:56:50.783Z",
+        "feature": "isometrix",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T09:57:23.286Z",
+        "feature": "canvas",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T09:57:31.413Z",
+        "feature": "editor",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T09:57:33.754Z",
+        "feature": "[projectId]",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T09:57:37.075Z",
+        "feature": "[projectId]",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T10:03:12.585Z",
+        "feature": "isometrix",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T10:03:27.451Z",
+        "feature": "ui",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T10:03:30.876Z",
+        "feature": "ui",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T10:03:33.891Z",
+        "feature": "ui",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T10:03:46.593Z",
+        "feature": "ui",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T10:04:02.981Z",
+        "feature": "editor",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T10:04:03.564Z",
+        "feature": "[projectId]",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T10:04:18.003Z",
+        "feature": "materials",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T10:04:31.466Z",
+        "feature": "materials",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T10:04:34.837Z",
+        "feature": "materials",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T10:07:38.385Z",
+        "feature": "dashboard",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T10:07:39.225Z",
+        "feature": "dashboard",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T10:07:40.955Z",
+        "feature": "dashboard",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T10:07:41.762Z",
+        "feature": "[projectId]",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T10:07:42.974Z",
+        "feature": "editor",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T10:07:44.589Z",
+        "feature": "dxf",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T10:07:45.861Z",
+        "feature": "dxf",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T10:07:47.595Z",
+        "feature": "isometrix",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T10:07:48.858Z",
+        "feature": "materials",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T10:07:50.972Z",
+        "feature": "materials",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T10:07:52.225Z",
+        "feature": "materials",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T10:07:53.523Z",
+        "feature": "materials",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T10:07:54.516Z",
+        "feature": "materials",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T10:14:26.307Z",
+        "feature": "supabase",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T10:14:50.293Z",
+        "feature": "editor",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T10:15:02.147Z",
+        "feature": "isometrix",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T10:15:14.924Z",
+        "feature": "isometrix",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T10:15:17.324Z",
+        "feature": "isometrix",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T10:15:46.828Z",
+        "feature": "isometrix",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T10:15:48.535Z",
+        "feature": "materials",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T10:15:50.591Z",
+        "feature": "materials",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T10:15:51.863Z",
+        "feature": "materials",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T10:15:53.361Z",
+        "feature": "materials",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T10:16:02.889Z",
+        "feature": "dxf",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T10:16:05.480Z",
+        "feature": "dxf",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T10:16:09.508Z",
+        "feature": "isometrix",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T10:17:23.699Z",
+        "feature": "isometrix",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T10:17:31.615Z",
+        "feature": "editor",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T10:17:44.286Z",
+        "feature": "canvas",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T10:17:52.544Z",
+        "feature": "editor",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T10:17:57.127Z",
+        "feature": "editor",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T10:17:59.285Z",
+        "feature": "editor",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T10:18:02.487Z",
+        "feature": "editor",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T10:18:07.039Z",
+        "feature": "[projectId]",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T10:18:12.404Z",
+        "feature": "isometrix",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T10:18:18.813Z",
+        "feature": "isometrix",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T10:18:33.920Z",
+        "feature": "isometrix",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T10:23:22.607Z",
+        "feature": "isometrix",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T10:23:41.267Z",
+        "feature": "isometrix",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T10:23:50.562Z",
+        "feature": "save",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T10:24:27.853Z",
+        "feature": "editor",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T10:24:48.112Z",
+        "feature": "supabase",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T10:25:05.539Z",
+        "feature": "isometrix",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T10:25:15.985Z",
+        "feature": "editor",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T10:25:25.008Z",
+        "feature": "isometrix",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T10:25:27.763Z",
+        "feature": "isometrix",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T10:25:41.590Z",
+        "feature": "isometrix",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T10:26:35.900Z",
+        "feature": "isometrix",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T10:26:42.886Z",
+        "feature": "isometrix",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T10:26:58.863Z",
+        "feature": "ai-render",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T10:27:13.492Z",
+        "feature": "isometrix",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T10:27:40.891Z",
+        "feature": "ai",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T10:27:50.229Z",
+        "feature": "editor",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T10:27:52.846Z",
+        "feature": "editor",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T10:27:55.977Z",
+        "feature": "editor",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T10:27:58.281Z",
+        "feature": "editor",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T10:28:13.569Z",
+        "feature": "ai-render",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T10:39:53.092Z",
+        "feature": "auth",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T10:40:59.125Z",
+        "feature": "signup",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T10:41:04.768Z",
+        "feature": "auth",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T10:42:45.141Z",
+        "feature": "isometrix",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T10:45:13.170Z",
+        "feature": "canvas",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T10:45:22.845Z",
+        "feature": "canvas",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T10:46:55.596Z",
+        "feature": "isometrix",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T10:49:26.561Z",
+        "feature": "isometrix",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T10:49:32.176Z",
+        "feature": "isometrix",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T10:49:43.849Z",
+        "feature": "editor",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T10:52:45.293Z",
+        "feature": "editor",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T10:55:04.122Z",
+        "feature": "isometrix",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T10:55:16.700Z",
+        "feature": "editor",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T10:55:29.112Z",
+        "feature": "editor",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T10:56:38.392Z",
+        "feature": "isometrix",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T10:56:40.445Z",
+        "feature": "isometrix",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T10:56:48.049Z",
+        "feature": "isometrix",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T10:56:49.260Z",
+        "feature": "isometrix",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T10:57:02.829Z",
+        "feature": "isometrix",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T10:57:09.447Z",
+        "feature": "editor",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T11:05:35.108Z",
+        "feature": "canvas",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T11:05:48.590Z",
+        "feature": "editor",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T11:05:54.201Z",
+        "feature": "editor",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T11:09:03.312Z",
+        "feature": "isometrix",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T11:09:06.940Z",
+        "feature": "isometrix",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T11:09:20.799Z",
+        "feature": "isometrix",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T11:13:45.461Z",
+        "feature": "isometrix",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T11:13:57.856Z",
+        "feature": "isometrix",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T11:14:00.423Z",
+        "feature": "isometrix",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T11:14:02.439Z",
+        "feature": "isometrix",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T11:14:05.616Z",
+        "feature": "ai-render",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T11:14:07.523Z",
+        "feature": "ai-render",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T11:14:15.606Z",
+        "feature": "ai-render",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T11:14:21.743Z",
+        "feature": "ai",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T11:14:26.326Z",
+        "feature": "ai",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T11:14:28.419Z",
+        "feature": "ai",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T11:14:30.438Z",
+        "feature": "ai",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T11:14:39.683Z",
+        "feature": "ai",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T11:16:52.420Z",
+        "feature": "isometrix",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T11:16:54.913Z",
+        "feature": "isometrix",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T11:17:19.331Z",
+        "feature": "isometrix",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T11:17:22.330Z",
+        "feature": "editor",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T11:17:31.853Z",
+        "feature": "isometrix",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T11:17:36.932Z",
+        "feature": "isometrix",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T11:17:41.355Z",
+        "feature": "isometrix",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T11:17:43.698Z",
+        "feature": "isometrix",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T11:17:50.762Z",
+        "feature": "ui",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T11:29:22.797Z",
+        "feature": "ai",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T11:29:24.082Z",
+        "feature": "ai",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T11:29:25.320Z",
+        "feature": "editor",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T11:29:34.587Z",
+        "feature": "ai",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T11:37:42.192Z",
+        "feature": "isometrix",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T11:37:46.707Z",
+        "feature": "isometrix",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T11:38:22.366Z",
+        "feature": "isometrix",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T11:38:27.909Z",
+        "feature": "isometrix",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T11:38:36.329Z",
+        "feature": "isometrix",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T11:41:57.690Z",
+        "feature": "isometrix",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T11:42:05.108Z",
+        "feature": "editor",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T11:42:09.082Z",
+        "feature": "editor",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T11:42:12.532Z",
+        "feature": "editor",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T11:42:20.654Z",
+        "feature": "ai",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T11:42:24.255Z",
+        "feature": "ai",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T11:42:31.818Z",
+        "feature": "auth",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T11:42:35.111Z",
+        "feature": "auth",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T11:43:55.634Z",
+        "feature": "editor",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T11:44:00.099Z",
+        "feature": "editor",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T11:44:04.851Z",
+        "feature": "editor",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T11:44:09.238Z",
+        "feature": "ai",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T11:44:15.525Z",
+        "feature": "ai",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T11:44:19.443Z",
+        "feature": "auth",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T11:44:23.052Z",
+        "feature": "auth",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T11:46:51.338Z",
+        "feature": "isometrix",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T11:47:02.417Z",
+        "feature": "isometrix",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T12:02:27.276Z",
+        "feature": "assets",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T12:02:37.645Z",
+        "feature": "interiorsim",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T12:06:45.917Z",
+        "feature": "interiorsim",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T12:06:55.127Z",
+        "feature": "interiorsim",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T12:07:15.775Z",
+        "feature": "assets",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T12:11:24.890Z",
+        "feature": "interiorsim",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T12:11:41.120Z",
+        "feature": "interiorsim",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T12:11:52.272Z",
+        "feature": "interiorsim",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T12:12:08.860Z",
+        "feature": "assets",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T12:16:31.805Z",
+        "feature": "assets",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T12:16:48.098Z",
+        "feature": "assets",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T12:17:03.419Z",
+        "feature": "interiorsim",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T12:19:53.621Z",
+        "feature": "assets",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T12:20:05.848Z",
+        "feature": "assets",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T12:25:30.097Z",
+        "feature": "assets",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T12:28:19.296Z",
+        "feature": "interiorsim",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T12:28:35.202Z",
+        "feature": "assets",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T12:28:46.508Z",
+        "feature": "assets",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T12:34:43.313Z",
+        "feature": "interiorsim",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T12:34:59.214Z",
+        "feature": "interiorsim",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T12:35:18.276Z",
+        "feature": "interiorsim",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T12:43:56.638Z",
+        "feature": "isometrix",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T12:44:14.733Z",
+        "feature": "dashboard",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T12:44:27.053Z",
+        "feature": "dashboard",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T12:44:38.045Z",
+        "feature": "dashboard",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T12:44:53.466Z",
+        "feature": "dashboard",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T12:45:02.491Z",
+        "feature": "dashboard",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T12:45:11.977Z",
+        "feature": "dashboard",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T12:45:38.518Z",
+        "feature": "dashboard",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T13:12:31.405Z",
+        "feature": "isometrix",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-04-09T13:24:05.368Z",
+        "feature": "interiorsim",
+        "phase": "do",
+        "action": "updated"
+      }
+    ]
+  }
+}

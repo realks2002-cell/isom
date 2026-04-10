@@ -33,11 +33,8 @@ export function MaterialPanel({ room, initialPart, onApply, onClose }: Props) {
 
   return (
     <>
-      {/* 모바일 백드롭 */}
-      <div
-        className="md:hidden fixed inset-0 bg-black/20 z-30"
-        onClick={onClose}
-      />
+      {/* 모바일 백드롭 — 클릭으로 닫히지 않음 (X 버튼만 닫힘) */}
+      <div className="md:hidden fixed inset-0 bg-black/20 z-30 pointer-events-none" />
       <aside
         className="
           fixed z-40 bg-white border-neutral-200 shadow-xl flex flex-col

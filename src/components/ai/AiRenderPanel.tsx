@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Sparkles, X, Loader2 } from 'lucide-react';
+import { Sparkles, X, Loader2, Camera as CameraIcon } from 'lucide-react';
 import type { FloorPlan } from '@/types/room';
 import { captureFloorPlanBase64 } from '@/lib/export';
 import type { RenderStyle, FurnitureLevel } from '@/lib/ai-render-prompts';
@@ -37,6 +37,42 @@ export function AiRenderPanel({ floorPlan, projectId, onClose }: Props) {
   const [sourceUrl, setSourceUrl] = useState<string | null>(null);
   const [compare, setCompare] = useState(50);
   const [remaining, setRemaining] = useState<number | null>(null);
+  const [referencePhoto, setReferencePhoto] = useState<string | null>(null);
+
+  const captureReferencePhoto = async () => {
+    try {
+      const { isNative } = await import('@/lib/platform');
+      if (isNative()) {
+        const { Camera, CameraResultType, CameraSource } = await import('@capacitor/camera');
+        const photo = await Camera.getPhoto({
+          quality: 70,
+          resultType: CameraResultType.DataUrl,
+          source: CameraSource.Prompt,
+          promptLabelHeader: '현장 사진',
+          promptLabelPhoto: '앨범에서 선택',
+          promptLabelPicture: '카메라로 촬영',
+        });
+        if (photo.dataUrl) setReferencePhoto(photo.dataUrl);
+      } else {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*';
+        input.capture = 'environment';
+        input.onchange = () => {
+          const file = input.files?.[0];
+          if (!file) return;
+          const reader = new FileReader();
+          reader.onloadend = () => setReferencePhoto(reader.result as string);
+          reader.readAsDataURL(file);
+        };
+        input.click();
+      }
+    } catch (e) {
+      if (!(e as Error)?.message?.toLowerCase?.().includes('cancel')) {
+        setError('사진을 가져올 수 없습니다');
+      }
+    }
+  };
 
   const run = async () => {
     if (!confirm('렌더링 1회가 차감됩니다. 진행할까요?')) return;
@@ -61,6 +97,13 @@ export function AiRenderPanel({ floorPlan, projectId, onClose }: Props) {
       if (!res.ok) throw new Error(json.error || '렌더링 실패');
       setResultUrl(`data:image/png;base64,${json.imageBase64}`);
       if (typeof json.remaining === 'number') setRemaining(json.remaining);
+      try {
+        const { isNative } = await import('@/lib/platform');
+        if (isNative()) {
+          const { Haptics, ImpactStyle } = await import('@capacitor/haptics');
+          await Haptics.impact({ style: ImpactStyle.Medium });
+        }
+      } catch {}
     } catch (e) {
       setError(e instanceof Error ? e.message : '렌더링 실패');
     } finally {
@@ -154,6 +197,38 @@ export function AiRenderPanel({ floorPlan, projectId, onClose }: Props) {
                   고품질
                 </button>
               </div>
+            </div>
+            <div>
+              <label className="block text-xs font-medium mb-2">현장 사진 (선택)</label>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={captureReferencePhoto}
+                  className="flex items-center gap-1.5 rounded-lg border border-neutral-300 bg-white px-3 py-2 text-xs font-medium text-neutral-700 hover:bg-neutral-50"
+                >
+                  <CameraIcon size={14} /> {referencePhoto ? '다시 촬영' : '사진 찍기'}
+                </button>
+                {referencePhoto && (
+                  <>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={referencePhoto}
+                      alt="현장"
+                      className="h-10 w-10 rounded-md object-cover border border-neutral-200"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setReferencePhoto(null)}
+                      className="text-[11px] text-neutral-500 hover:text-red-600"
+                    >
+                      제거
+                    </button>
+                  </>
+                )}
+              </div>
+              <p className="mt-1 text-[10px] text-neutral-500">
+                실제 현장 사진을 참고하면 더 정확한 분위기로 렌더링됩니다.
+              </p>
             </div>
             {error && (
               <p className="text-xs text-red-600 bg-red-50 rounded-lg px-3 py-2">

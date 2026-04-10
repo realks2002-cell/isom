@@ -1,10 +1,6 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
-// user id → { role, expiresAt } 모듈 캐시 (60초 TTL)
-const roleCache = new Map<string, { role: string; expiresAt: number }>();
-const ROLE_TTL_MS = 60_000;
-
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
 
@@ -36,6 +32,11 @@ export async function updateSession(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const isAuthPage = pathname === '/';
 
+  // /admin 경로는 자체 쿠키 인증 — Supabase Auth 우회
+  if (pathname.startsWith('/admin')) {
+    return supabaseResponse;
+  }
+
   // redirect 시에도 세션 쓰기 보존: cookiesToSet이 이미 supabaseResponse에 반영되어 있으므로
   // cookies 배열 전체를 복사하되 options(Name/Value) 구조를 유지
   const makeRedirect = (to: URL) => {
@@ -48,31 +49,6 @@ export async function updateSession(request: NextRequest) {
 
   if (!user && !isAuthPage) {
     return makeRedirect(new URL('/', request.url));
-  }
-
-  // /admin 경로 role 체크 (TTL 캐시로 DB round-trip 최소화)
-  if (user && pathname.startsWith('/admin')) {
-    const now = Date.now();
-    const cached = roleCache.get(user.id);
-    let role: string | null = null;
-
-    if (cached && cached.expiresAt > now) {
-      role = cached.role;
-    } else {
-      const { data: profile } = await supabase
-        .from('iso_profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single();
-      role = profile?.role ?? null;
-      if (role) {
-        roleCache.set(user.id, { role, expiresAt: now + ROLE_TTL_MS });
-      }
-    }
-
-    if (role !== 'admin') {
-      return makeRedirect(new URL('/dashboard', request.url));
-    }
   }
 
   return supabaseResponse;

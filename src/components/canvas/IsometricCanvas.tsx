@@ -169,18 +169,118 @@ export function IsometricCanvas({
     const { w, h } = sizeRef.current;
     const iso = screenToIso(sx, sy, w, h, camera);
 
+    // 앞쪽 방부터 검사
     const sorted = [...floorPlan.rooms].sort((a, b) => {
       const aMin = Math.max(...a.points.map((p) => p.x + p.y));
       const bMin = Math.max(...b.points.map((p) => p.x + p.y));
       return bMin - aMin;
     });
+
+    // 1) 정확한 바닥 폴리곤
     for (const room of sorted) {
       const poly = room.points.map((p) => toIso(p.x, p.y));
       if (pointInPoly(iso.x, iso.y, poly)) {
         return { roomId: room.id, part: 'floor' };
       }
     }
-    // 방이 1개뿐이면 빈 공간 클릭도 해당 방 선택으로 처리
+
+    // 2) 벽 사다리꼴 — door / baseboard / wall 분기
+    for (const room of sorted) {
+      const pts = room.points;
+      for (let i = 0; i < pts.length; i++) {
+        const p1 = pts[i];
+        const p2 = pts[(i + 1) % pts.length];
+        const b1 = toIso(p1.x, p1.y);
+        const b2 = toIso(p2.x, p2.y);
+        const t1 = toIso(p1.x, p1.y, room.wallHeight);
+        const t2 = toIso(p2.x, p2.y, room.wallHeight);
+        const quad = [b1, b2, t2, t1];
+        if (!pointInPoly(iso.x, iso.y, quad)) continue;
+
+        // 벽 안 클릭 — 어느 부위인지 추가 판정
+        // 변의 길이 / door 매칭
+        const dx = p2.x - p1.x;
+        const dy = p2.y - p1.y;
+        const len = Math.hypot(dx, dy);
+
+        // 도어 영역 검사 (매칭 거리 1m로 확대)
+        if (len > 0.01) {
+          for (const d of floorPlan.doors) {
+            const ddx = d.position.x - p1.x;
+            const ddy = d.position.y - p1.y;
+            const lenSq = dx * dx + dy * dy;
+            const tProj = (ddx * dx + ddy * dy) / lenSq;
+            const projX = p1.x + tProj * dx;
+            const projY = p1.y + tProj * dy;
+            const dist = Math.hypot(d.position.x - projX, d.position.y - projY);
+            if (dist < 1.0 && tProj > 0 && tProj < 1) {
+              const half = d.width / 2 / len;
+              const tStart = Math.max(0, tProj - half);
+              const tEnd = Math.min(1, tProj + half);
+              const dq1 = toIso(p1.x + dx * tStart, p1.y + dy * tStart);
+              const dq2 = toIso(p1.x + dx * tEnd, p1.y + dy * tEnd);
+              const doorH = room.wallHeight * 0.75;
+              const dt1 = toIso(p1.x + dx * tStart, p1.y + dy * tStart, doorH);
+              const dt2 = toIso(p1.x + dx * tEnd, p1.y + dy * tEnd, doorH);
+              const doorQuad = [dq1, dq2, dt2, dt1];
+              if (pointInPoly(iso.x, iso.y, doorQuad)) {
+                return { roomId: room.id, part: 'door' };
+              }
+            }
+          }
+        }
+
+        // 걸레받이 영역 (벽 하단 ~25%로 확대)
+        const bbH = room.wallHeight * 0.25;
+        const bb1 = toIso(p1.x, p1.y, bbH);
+        const bb2 = toIso(p2.x, p2.y, bbH);
+        const bbQuad = [b1, b2, bb2, bb1];
+        if (pointInPoly(iso.x, iso.y, bbQuad)) {
+          return { roomId: room.id, part: 'baseboard' };
+        }
+
+        return { roomId: room.id, part: 'wall' };
+      }
+    }
+
+    // 3) 방이 시각적으로 가린 영역 — 천장 폴리곤(z=wallHeight)으로 fallback
+    for (const room of sorted) {
+      const ceilingPoly = room.points.map((p) => toIso(p.x, p.y, room.wallHeight));
+      if (pointInPoly(iso.x, iso.y, ceilingPoly)) {
+        return { roomId: room.id, part: 'floor' };
+      }
+    }
+
+    // 4) Fallback — 클릭에서 가장 가까운 floor poly edge를 가진 방 선택
+    const distToSegment = (px: number, py: number, x1: number, y1: number, x2: number, y2: number) => {
+      const dx = x2 - x1;
+      const dy = y2 - y1;
+      const lenSq = dx * dx + dy * dy;
+      if (lenSq < 1e-9) return Math.hypot(px - x1, py - y1);
+      let t = ((px - x1) * dx + (py - y1) * dy) / lenSq;
+      t = Math.max(0, Math.min(1, t));
+      return Math.hypot(px - (x1 + t * dx), py - (y1 + t * dy));
+    };
+    let bestRoom: typeof sorted[number] | null = null;
+    let bestDist = Infinity;
+    for (const room of sorted) {
+      const poly = room.points.map((p) => toIso(p.x, p.y));
+      for (let i = 0; i < poly.length; i++) {
+        const a = poly[i];
+        const b = poly[(i + 1) % poly.length];
+        const d = distToSegment(iso.x, iso.y, a.x, a.y, b.x, b.y);
+        if (d < bestDist) {
+          bestDist = d;
+          bestRoom = room;
+        }
+      }
+    }
+    // 너무 멀면(80픽셀 이상) 무시 — 명백히 빈 영역 클릭
+    if (bestRoom && bestDist < 80) {
+      return { roomId: bestRoom.id, part: 'floor' };
+    }
+
+    // 5) 방이 1개뿐이면 빈 공간 클릭도 해당 방 floor 선택
     if (floorPlan.rooms.length === 1) {
       return { roomId: floorPlan.rooms[0].id, part: 'floor' };
     }
