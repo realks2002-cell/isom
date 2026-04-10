@@ -25,10 +25,10 @@ export async function Hero() {
           <h1 className="text-4xl font-black leading-[1.05] tracking-tight text-neutral-900 md:text-6xl">
             Everything Starts
             <br />
-            at 평면도.
+            with a Single Drawing.
           </h1>
           <p className="mx-auto mt-5 max-w-xl text-sm leading-relaxed text-neutral-600 md:text-base">
-            DXF 한 장이면 충분합니다. 자체 Isometric Rendering Engine 이 당신의
+            DWG 한 장이면 충분합니다. 자체 Isometric Rendering Engine 이 당신의
             도면을 실시간 3D 시뮬레이션으로 바꿔드립니다.
             <br className="hidden md:block" />
             No 3D software. No 대기. 현장에서 바로.
