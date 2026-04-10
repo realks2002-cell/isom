@@ -644,21 +644,6 @@ export function render(ctx: CanvasRenderingContext2D, state: RenderState) {
     }
   }
 
-  // 6) 천장 — 선택됐을 때만 표시 (평소엔 시야를 가리지 않도록)
-  if (selection?.part === 'ceiling') {
-    for (const room of sorted) {
-      if (selection.roomId !== room.id) continue;
-      const ceilingPts = room.points.map((p) => toIso(p.x, p.y, room.wallHeight));
-      ctx.beginPath();
-      ceilingPts.forEach((p, i) => (i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y)));
-      ctx.closePath();
-      ctx.fillStyle = room.ceiling?.color ?? '#f5f5f5';
-      ctx.fill();
-      ctx.strokeStyle = '#e94560';
-      ctx.lineWidth = 3;
-      ctx.stroke();
-    }
-  }
 }
 
 // ─── 히트맵 (color picking) ───
@@ -666,7 +651,7 @@ export function render(ctx: CanvasRenderingContext2D, state: RenderState) {
 function encodeHitColor(roomIdx: number, part: PartType, wallIndex: number): string {
   // R = (roomIdx+1)*8, G = partCode*50, B = (wallIndex+1)*8
   // 값을 크게 해서 안티앨리어싱에 의한 색 혼합 영향을 줄임
-  const partCode: Record<string, number> = { floor: 1, wall: 2, baseboard: 3, ceiling: 4, door: 5 };
+  const partCode: Record<string, number> = { floor: 1, wall: 2, baseboard: 3, door: 5 };
   const r = Math.min(255, (roomIdx + 1) * 8);
   const g = (partCode[part] ?? 0) * 50;
   const b = Math.min(255, (wallIndex + 1) * 8);
@@ -675,7 +660,7 @@ function encodeHitColor(roomIdx: number, part: PartType, wallIndex: number): str
 
 export function decodeHitColor(r: number, g: number, b: number): { roomIdx: number; part: PartType; wallIndex: number } | null {
   if (r < 4 && g < 25 && b < 4) return null; // 배경 (검정 근처)
-  const partMap: Record<number, PartType> = { 1: 'floor', 2: 'wall', 3: 'baseboard', 4: 'ceiling', 5: 'door' };
+  const partMap: Record<number, PartType> = { 1: 'floor', 2: 'wall', 3: 'baseboard', 5: 'door' };
   // g 값에서 partCode 역산 (50 단위 반올림)
   const partCode = Math.round(g / 50);
   const part = partMap[partCode];

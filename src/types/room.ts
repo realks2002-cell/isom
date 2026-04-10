@@ -14,7 +14,7 @@ export type PatternType =
   | 'terrazzo'
   | 'concrete';
 
-export type PartType = 'floor' | 'wall' | 'baseboard' | 'ceiling' | 'door';
+export type PartType = 'floor' | 'wall' | 'baseboard' | 'door';
 
 export interface MaterialAssignment {
   materialId: string;
@@ -33,7 +33,6 @@ export interface Room {
   wall: MaterialAssignment;
   walls?: Record<number, MaterialAssignment>;
   baseboard: MaterialAssignment;
-  ceiling: MaterialAssignment;
   door: MaterialAssignment;
 }
 

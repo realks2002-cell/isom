@@ -277,7 +277,6 @@ export function buildFloorPlan(parsed: ParsedDxf, mapping: LayerMapping, buildin
       floor: { ...mat.floor },
       wall: { ...mat.wall },
       baseboard: { ...mat.baseboard },
-      ceiling: { ...mat.ceiling },
       door: { ...mat.door },
     });
     roomIdx++;

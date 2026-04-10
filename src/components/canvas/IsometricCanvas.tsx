@@ -187,25 +187,20 @@ export function IsometricCanvas({
       return bMax - aMax;
     });
 
-    const isWallVisible = (dx: number, dy: number) => {
-      const r = rotatePoint(dx, dy, rot);
-      return -r.y + r.x > 0;
-    };
-
-    // 1) 벽
-    for (const room of sorted) {
-      const pts = room.points;
-      for (let i = 0; i < pts.length; i++) {
-        const p1 = pts[i];
-        const p2 = pts[(i + 1) % pts.length];
-        if (!isWallVisible(p2.x - p1.x, p2.y - p1.y)) continue;
-
-        const b1 = rIso(p1.x, p1.y);
-        const b2 = rIso(p2.x, p2.y);
-        const t1 = rIso(p1.x, p1.y, room.wallHeight);
-        const t2 = rIso(p2.x, p2.y, room.wallHeight);
-        if (pointInPoly(iso.x, iso.y, [b1, b2, t2, t1])) {
-          return { roomId: room.id, part: 'wall', wallIndex: i };
+    // 1) 벽 (hideWalls일 때 스킵 — 바닥만 잡히도록)
+    if (!hideWalls) {
+      for (const room of sorted) {
+        const pts = room.points;
+        for (let i = 0; i < pts.length; i++) {
+          const p1 = pts[i];
+          const p2 = pts[(i + 1) % pts.length];
+          const b1 = rIso(p1.x, p1.y);
+          const b2 = rIso(p2.x, p2.y);
+          const t1 = rIso(p1.x, p1.y, room.wallHeight);
+          const t2 = rIso(p2.x, p2.y, room.wallHeight);
+          if (pointInPoly(iso.x, iso.y, [b1, b2, t2, t1])) {
+            return { roomId: room.id, part: 'wall', wallIndex: i };
+          }
         }
       }
     }
@@ -218,7 +213,7 @@ export function IsometricCanvas({
       }
     }
 
-    // 3) 천장 fallback
+    // 3) 벽 상단 영역 fallback (바닥으로 처리)
     for (const room of sorted) {
       const cPoly = room.points.map((p) => rIso(p.x, p.y, room.wallHeight));
       if (pointInPoly(iso.x, iso.y, cPoly)) {
@@ -272,8 +267,11 @@ export function IsometricCanvas({
     dragRef.current = null;
     if (!d) return;
     const moved = Math.abs(e.clientX - d.sx) + Math.abs(e.clientY - d.sy);
+    console.log('[onMouseUp] moved:', moved);
     if (moved < 4) {
-      handleHit(hitTest(e.clientX, e.clientY));
+      const hit = hitTest(e.clientX, e.clientY);
+      console.log('[onMouseUp] hit:', hit);
+      handleHit(hit);
     }
   };
 

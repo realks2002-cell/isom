@@ -7,7 +7,6 @@ const PARTS: { value: PartType; label: string }[] = [
   { value: 'wall', label: '벽' },
   { value: 'door', label: '도어' },
   { value: 'baseboard', label: '걸레받이' },
-  { value: 'ceiling', label: '천장' },
 ];
 
 export function PartSelector({

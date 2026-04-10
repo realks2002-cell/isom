@@ -9,7 +9,7 @@ import { IsometricCanvas } from '@/components/canvas/IsometricCanvas';
 import { MaterialPanel } from '@/components/ui/MaterialPanel';
 import { ExportButton } from './ExportButton';
 import { AiRenderPanel } from '@/components/ai/AiRenderPanel';
-import { Sparkles, Palette, Save, Building2, Undo2 } from 'lucide-react';
+import { Sparkles, Palette, Save, Building2, Undo2, ScanEye } from 'lucide-react';
 import { BUILDING_TYPES, type BuildingType } from '@/lib/building-types';
 
 type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
@@ -93,7 +93,6 @@ export function EditorCanvas({
         floor: { ...r2.floor, color: '#d4c5a9', patternType: r2.floor?.patternType || 'solid', materialId: r2.floor?.materialId || '' },
         wall: { ...r2.wall, color: '#ece6dc', patternType: r2.wall?.patternType || 'solid', materialId: r2.wall?.materialId || '' },
         baseboard: { ...r2.baseboard, color: '#8b7355', patternType: r2.baseboard?.patternType || 'solid', materialId: r2.baseboard?.materialId || '' },
-        ceiling: { ...r2.ceiling, color: '#f5f0e8', patternType: r2.ceiling?.patternType || 'solid', materialId: r2.ceiling?.materialId || '' },
         door: r2.door?.color
           ? r2.door
           : { materialId: '', color: '#6B4C3B', patternType: 'solid' as const },
@@ -117,6 +116,65 @@ export function EditorCanvas({
     _setFloorPlan(prev);
     isDirty.current = true;
     scheduleSave();
+  };
+
+  const [analyzing, setAnalyzing] = useState(false);
+  const [analyzeMsg, setAnalyzeMsg] = useState<string | null>(null);
+
+  const handleAnalyzePhoto = async (applyTo: 'current' | 'all') => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = async () => {
+      const file = input.files?.[0];
+      if (!file) return;
+      setAnalyzing(true);
+      setAnalyzeMsg('사진 분석 중...');
+      try {
+        const reader = new FileReader();
+        const base64 = await new Promise<string>((resolve) => {
+          reader.onloadend = () => {
+            const result = reader.result as string;
+            resolve(result.split(',')[1]);
+          };
+          reader.readAsDataURL(file);
+        });
+
+        const res = await fetch('/api/ai-analyze', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ imageBase64: base64 }),
+        });
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.error);
+
+        const { materials } = json;
+        isDirty.current = true;
+        setFloorPlan((prev) => ({
+          ...prev,
+          rooms: prev.rooms.map((r) => {
+            if (applyTo === 'current' && r.id !== selection?.roomId) return r;
+            return {
+              ...r,
+              floor: { ...r.floor, color: materials.floor.color, patternType: materials.floor.patternType },
+              wall: { ...r.wall, color: materials.wall.color, patternType: materials.wall.patternType },
+              baseboard: { ...r.baseboard, color: materials.baseboard.color, patternType: materials.baseboard.patternType },
+              door: { ...r.door, color: materials.door.color, patternType: materials.door.patternType },
+            };
+          }),
+        }));
+        scheduleSave();
+        const desc = `바닥: ${materials.floor.description}, 벽: ${materials.wall.description}`;
+        setAnalyzeMsg(`✅ 적용 완료 — ${desc}`);
+        setTimeout(() => setAnalyzeMsg(null), 4000);
+      } catch (e) {
+        setAnalyzeMsg(`❌ ${e instanceof Error ? e.message : '분석 실패'}`);
+        setTimeout(() => setAnalyzeMsg(null), 3000);
+      } finally {
+        setAnalyzing(false);
+      }
+    };
+    input.click();
   };
 
   const [selection, setSelection] = useState<Selection | null>(null);
@@ -302,6 +360,7 @@ export function EditorCanvas({
   };
 
   const handleApply = (part: PartType, material: Material) => {
+    console.log('[handleApply] part:', part, 'material:', material.name, 'selection:', selection);
     if (!selection) return;
     isDirty.current = true;
     const assign = toAssignment(material);
@@ -448,6 +507,14 @@ export function EditorCanvas({
           </div>
         )}
         <button
+          onClick={() => handleAnalyzePhoto(selection ? 'current' : 'all')}
+          disabled={analyzing}
+          className="flex items-center gap-1.5 rounded-lg bg-white text-neutral-900 border border-neutral-200 px-3 py-1.5 text-xs font-medium hover:bg-neutral-50 shadow-sm disabled:opacity-50"
+          title="현장 사진으로 마감재 자동 분석"
+        >
+          <ScanEye size={14} /> {analyzing ? '분석 중...' : 'AI 분석'}
+        </button>
+        <button
           onClick={() => setAiOpen(true)}
           className="flex items-center gap-1.5 rounded-lg bg-yellow-500 text-neutral-900 px-3 py-1.5 text-xs font-bold hover:bg-yellow-400 shadow-sm"
         >
@@ -473,13 +540,17 @@ export function EditorCanvas({
                   floor: '바닥',
                   wall: '벽',
                   baseboard: '걸레받이',
-                  ceiling: '천장',
                   door: '도어',
                 }[selection.part]
               }${selection.wallIndex !== undefined ? ` ${selection.wallIndex + 1}면` : ''} 선택됨 — 자재를 적용하세요`
             : '영역을 클릭(또는 탭)하여 선택하세요'}
         </span>
-        {statusLabel && (
+        {analyzeMsg && (
+          <span className={analyzeMsg.startsWith('✅') ? 'text-green-600' : analyzeMsg.startsWith('❌') ? 'text-red-600' : 'text-blue-600'}>
+            {analyzeMsg}
+          </span>
+        )}
+        {!analyzeMsg && statusLabel && (
           <span
             className={
               status === 'error'

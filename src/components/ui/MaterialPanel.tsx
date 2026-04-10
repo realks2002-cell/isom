@@ -35,6 +35,7 @@ export function MaterialPanel({
   const [customInput, setCustomInput] = useState(false);
   const [roomListOpen, setRoomListOpen] = useState(false);
   const [lastApplied, setLastApplied] = useState<Material | null>(null);
+  const [appliedMsg, setAppliedMsg] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -177,6 +178,12 @@ export function MaterialPanel({
           />
         </div>
 
+        {appliedMsg && (
+          <div className="mx-4 mt-2 px-3 py-2 bg-green-50 border border-green-200 rounded-lg text-xs font-medium text-green-700 text-center">
+            {appliedMsg}
+          </div>
+        )}
+
         {/* 자재 목록 */}
         <div className="flex-1 overflow-y-auto p-3">
           {loading ? (
@@ -192,7 +199,12 @@ export function MaterialPanel({
                   key={m.id}
                   material={m}
                   selected={currentAssignment.materialId === m.id}
-                  onClick={() => { onApply(part, m); setLastApplied(m); }}
+                  onClick={() => {
+                    onApply(part, m);
+                    setLastApplied(m);
+                    setAppliedMsg(`✅ ${m.name} 적용됨`);
+                    setTimeout(() => setAppliedMsg(null), 2000);
+                  }}
                 />
               ))}
             </div>
@@ -204,12 +216,16 @@ export function MaterialPanel({
           <button
             onClick={() => {
               const mat = lastApplied ?? materials.find((m) => currentAssignment.materialId === m.id);
-              if (mat) onApplyAll(part, mat);
+              if (mat) {
+                onApplyAll(part, mat);
+                setAppliedMsg(`✅ "${mat.name}" 전체 방 적용됨`);
+                setTimeout(() => setAppliedMsg(null), 2000);
+              }
             }}
             disabled={!lastApplied && !currentAssignment.materialId}
             className="w-full rounded-lg bg-red-50 border border-red-200 py-2 text-xs font-bold text-red-700 hover:bg-red-100 disabled:opacity-30 disabled:cursor-not-allowed"
           >
-            {lastApplied ? `"${lastApplied.name}" ` : ''}전체 방 {part === 'floor' ? '바닥' : part === 'wall' ? '벽' : part === 'baseboard' ? '걸레받이' : part === 'ceiling' ? '천장' : '도어'} 일괄 적용
+            {lastApplied ? `"${lastApplied.name}" ` : ''}전체 방 {part === 'floor' ? '바닥' : part === 'wall' ? '벽' : part === 'baseboard' ? '걸레받이' : '도어'} 일괄 적용
           </button>
         </div>
       </aside>

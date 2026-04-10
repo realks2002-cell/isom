@@ -77,42 +77,36 @@ export const DEFAULT_MATERIALS: Record<BuildingType, {
   floor: MaterialAssignment;
   wall: MaterialAssignment;
   baseboard: MaterialAssignment;
-  ceiling: MaterialAssignment;
   door: MaterialAssignment;
 }> = {
   apartment: {
     floor: { materialId: '', color: '#C9A96E', patternType: 'wood' },
     wall: { materialId: '', color: '#F5F3EF', patternType: 'solid' },
     baseboard: { materialId: '', color: '#FFFFFF', patternType: 'solid' },
-    ceiling: { materialId: '', color: '#FFFFFF', patternType: 'solid' },
     door: { materialId: '', color: '#F0EBE3', patternType: 'solid' },
   },
   office: {
     floor: { materialId: '', color: '#8B8B8B', patternType: 'tile' },
     wall: { materialId: '', color: '#F5F5F5', patternType: 'solid' },
     baseboard: { materialId: '', color: '#E0E0E0', patternType: 'solid' },
-    ceiling: { materialId: '', color: '#FFFFFF', patternType: 'solid' },
     door: { materialId: '', color: '#D0D0D0', patternType: 'solid' },
   },
   hospital: {
     floor: { materialId: '', color: '#E0DDD8', patternType: 'tile' },
     wall: { materialId: '', color: '#FFFFFF', patternType: 'solid' },
     baseboard: { materialId: '', color: '#E0E0E0', patternType: 'solid' },
-    ceiling: { materialId: '', color: '#FFFFFF', patternType: 'solid' },
     door: { materialId: '', color: '#E8E8E8', patternType: 'solid' },
   },
   retail: {
     floor: { materialId: '', color: '#D5CEC3', patternType: 'tile' },
     wall: { materialId: '', color: '#FFFFFF', patternType: 'solid' },
     baseboard: { materialId: '', color: '#E0E0E0', patternType: 'solid' },
-    ceiling: { materialId: '', color: '#FFFFFF', patternType: 'solid' },
     door: { materialId: '', color: '#E0E0E0', patternType: 'solid' },
   },
   school: {
     floor: { materialId: '', color: '#C9C0B0', patternType: 'tile' },
     wall: { materialId: '', color: '#F0F4EC', patternType: 'solid' },
     baseboard: { materialId: '', color: '#E0E0E0', patternType: 'solid' },
-    ceiling: { materialId: '', color: '#FFFFFF', patternType: 'solid' },
     door: { materialId: '', color: '#D4C5A9', patternType: 'solid' },
   },
 };
