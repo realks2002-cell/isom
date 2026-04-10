@@ -1,5 +1,11 @@
 import type { Point2D, PatternType, MaterialAssignment } from '@/types/room';
-import { SCALE, toIso, polygonBounds } from './isometric';
+import { SCALE, toIso as _toIso, polygonBounds, rotatePoint } from './isometric';
+
+let _rotation = 0;
+function toIso(x: number, y: number, z = 0): Point2D {
+  const r = rotatePoint(x, y, _rotation);
+  return _toIso(r.x, r.y, z);
+}
 
 function seededRand(seed: number) {
   let h = seed || 1;
@@ -16,8 +22,10 @@ function tileSizeGrid(mat: MaterialAssignment, fallback = 30): number {
 export function drawFloorPattern(
   ctx: CanvasRenderingContext2D,
   points: Point2D[],
-  mat: MaterialAssignment
+  mat: MaterialAssignment,
+  rotation = 0
 ) {
+  _rotation = rotation;
   ctx.save();
   const iso = points.map((p) => toIso(p.x, p.y));
   ctx.beginPath();

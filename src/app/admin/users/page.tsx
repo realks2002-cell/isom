@@ -50,6 +50,12 @@ export default async function AdminUsersPage() {
         <div className="flex items-center gap-3">
           <span className="text-xs text-neutral-500">총 {rows.length}명</span>
           <a
+            href="/admin/portfolio"
+            className="rounded-lg border border-neutral-300 px-3 py-1.5 text-xs hover:bg-neutral-50"
+          >
+            포트폴리오
+          </a>
+          <a
             href="/admin/logout"
             className="rounded-lg border border-neutral-300 px-3 py-1.5 text-xs hover:bg-neutral-50"
           >

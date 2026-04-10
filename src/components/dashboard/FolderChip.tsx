@@ -39,18 +39,20 @@ export function FolderChip({ id, name, count }: Props) {
   return (
     <Link
       href={`/dashboard?folder=${id}`}
-      className="group relative flex-shrink-0 flex flex-col items-center justify-center gap-1 w-24 h-24 rounded-2xl border border-neutral-200 bg-neutral-50 hover:bg-white hover:shadow-md transition"
+      className="group relative flex flex-shrink-0 flex-col items-center justify-center gap-1.5 w-28 h-28 border border-neutral-200 bg-white hover:shadow-md transition"
     >
-      <Folder size={26} className="text-neutral-500" />
-      <span className="text-xs font-medium text-neutral-800 truncate max-w-[80%]">
+      <Folder size={24} className="text-neutral-500 group-hover:text-[#d43e76]" />
+      <span className="text-[12px] font-bold text-neutral-800 truncate max-w-[85%]">
         {name}
       </span>
-      <span className="text-[10px] text-neutral-500">{count}개</span>
+      <span className="text-[10px] uppercase tracking-wider text-neutral-400">
+        {count} items
+      </span>
       <button
         onClick={handleDelete}
         disabled={isPending}
         aria-label="폴더 삭제"
-        className="absolute -top-1.5 -right-1.5 rounded-full bg-white border border-neutral-200 p-1 opacity-0 group-hover:opacity-100 hover:bg-red-50 hover:text-red-600 transition"
+        className="absolute -top-2 -right-2 rounded-full border border-neutral-200 bg-white p-1 opacity-0 transition group-hover:opacity-100 hover:bg-red-50 hover:text-red-600"
       >
         <X size={12} />
       </button>

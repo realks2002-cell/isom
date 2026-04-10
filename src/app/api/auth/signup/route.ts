@@ -5,7 +5,12 @@ const ID_DOMAIN = '@isometrix.local';
 
 export async function POST(req: NextRequest) {
   const body = (await req.json().catch(() => null)) as
-    | { userId?: string; password?: string }
+    | {
+        userId?: string;
+        password?: string;
+        phone?: string;
+        recoveryEmail?: string;
+      }
     | null;
 
   if (!body?.userId || !body.password) {
@@ -22,6 +27,22 @@ export async function POST(req: NextRequest) {
   if (body.password.length < 6) {
     return NextResponse.json(
       { error: '비밀번호는 6자 이상이어야 합니다' },
+      { status: 400 }
+    );
+  }
+
+  const phone = (body.phone || '').trim() || null;
+  const recoveryEmail = (body.recoveryEmail || '').trim().toLowerCase() || null;
+
+  if (!recoveryEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recoveryEmail)) {
+    return NextResponse.json(
+      { error: '비밀번호 찾기용 이메일을 정확히 입력해주세요' },
+      { status: 400 }
+    );
+  }
+  if (!phone || phone.replace(/\D/g, '').length < 9) {
+    return NextResponse.json(
+      { error: '전화번호를 입력해주세요' },
       { status: 400 }
     );
   }
@@ -47,12 +68,15 @@ export async function POST(req: NextRequest) {
 
   if (created.user) {
     await admin
-      .from('iso_user_credentials')
-      .upsert({
-        user_id: created.user.id,
-        plain_password: body.password,
-        updated_at: new Date().toISOString(),
-      });
+      .from('iso_profiles')
+      .update({ phone, recovery_email: recoveryEmail })
+      .eq('id', created.user.id);
+
+    await admin.from('iso_user_credentials').upsert({
+      user_id: created.user.id,
+      plain_password: body.password,
+      updated_at: new Date().toISOString(),
+    });
   }
 
   return NextResponse.json({ ok: true });

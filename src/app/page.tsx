@@ -1,6 +1,11 @@
-import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
-import { LoginForm } from '@/components/auth/LoginForm';
+import { TopBar } from '@/components/landing/TopBar';
+import { Hero } from '@/components/landing/Hero';
+import { PortfolioGrid } from '@/components/landing/PortfolioGrid';
+import { LibraryBar } from '@/components/landing/LibraryBar';
+import { Footer } from '@/components/landing/Footer';
+
+export const dynamic = 'force-dynamic';
 
 export default async function HomePage() {
   const supabase = await createClient();
@@ -8,21 +13,15 @@ export default async function HomePage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (user) {
-    redirect('/dashboard');
-  }
-
   return (
-    <main className="flex-1 flex items-center justify-center px-4 py-12">
-      <div className="w-full max-w-xs">
-        <div className="mb-8 text-center">
-          <h1 className="text-2xl font-bold">인테리어 시뮬레이터</h1>
-          <p className="mt-2 text-sm text-neutral-600">
-            ID와 비밀번호로 로그인하세요
-          </p>
-        </div>
-        <LoginForm />
-      </div>
-    </main>
+    <div className="flex min-h-screen flex-col bg-neutral-50">
+      <TopBar isAuthed={!!user} />
+      <main className="flex-1">
+        <Hero />
+        <PortfolioGrid />
+        <LibraryBar />
+      </main>
+      <Footer />
+    </div>
   );
 }

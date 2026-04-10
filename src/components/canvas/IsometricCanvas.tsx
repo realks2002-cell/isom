@@ -3,12 +3,13 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import type { FloorPlan } from '@/types/room';
 import { render, type Selection } from '@/lib/renderer';
-import { screenToIso, pointInPoly, toIso, fitCameraToBounds } from '@/lib/isometric';
+import { screenToIso, pointInPoly, toIso, fitCameraToBounds, rotatePoint, unrotatePoint } from '@/lib/isometric';
 
 interface Camera {
   x: number;
   y: number;
   zoom: number;
+  rotation: number;
 }
 
 interface Props {
@@ -29,7 +30,9 @@ export function IsometricCanvas({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
   const [camera, setCamera] = useState<Camera>(
-    initialCamera ?? { x: 0, y: 0, zoom: 1 }
+    initialCamera
+      ? { ...initialCamera, rotation: initialCamera.rotation ?? 0 }
+      : { x: 0, y: 0, zoom: 1, rotation: 0 }
   );
 
   useEffect(() => {
@@ -45,7 +48,7 @@ export function IsometricCanvas({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
     const { w, h, dpr } = sizeRef.current;
-    render(ctx, { floorPlan, camera, selection, width: w, height: h, dpr });
+    render(ctx, { floorPlan, camera, selection, width: w, height: h, dpr, rotation: camera.rotation });
   }, [floorPlan, camera, selection]);
 
   // 초기 auto-fit (initialCamera 없을 때)
@@ -68,12 +71,13 @@ export function IsometricCanvas({
       maxY = -Infinity;
     for (const room of floorPlan.rooms) {
       for (const p of room.points) {
-        const base = toIso(p.x, p.y);
+        const rp = rotatePoint(p.x, p.y, camera.rotation);
+        const base = toIso(rp.x, rp.y);
         if (base.x < minX) minX = base.x;
         if (base.y < minY) minY = base.y;
         if (base.x > maxX) maxX = base.x;
         if (base.y > maxY) maxY = base.y;
-        const top = toIso(p.x, p.y, room.wallHeight);
+        const top = toIso(rp.x, rp.y, room.wallHeight);
         if (top.y < minY) minY = top.y;
       }
     }
@@ -85,8 +89,8 @@ export function IsometricCanvas({
       60
     );
     fittedRef.current = true;
-    setCamera(cam);
-  }, [floorPlan, initialCamera]);
+    setCamera((prev) => ({ ...cam, rotation: prev.rotation }));
+  }, [floorPlan, initialCamera]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // 리사이즈
   useEffect(() => {
@@ -168,42 +172,36 @@ export function IsometricCanvas({
     const sy = clientY - rect.top;
     const { w, h } = sizeRef.current;
     const iso = screenToIso(sx, sy, w, h, camera);
+    const rot = camera.rotation;
+    const rIso = (x: number, y: number, z = 0) => {
+      const rp = rotatePoint(x, y, rot);
+      return toIso(rp.x, rp.y, z);
+    };
 
     // 앞쪽 방부터 검사
     const sorted = [...floorPlan.rooms].sort((a, b) => {
-      const aMin = Math.max(...a.points.map((p) => p.x + p.y));
-      const bMin = Math.max(...b.points.map((p) => p.x + p.y));
+      const aMin = Math.max(...a.points.map((p) => { const rp = rotatePoint(p.x, p.y, rot); return rp.x + rp.y; }));
+      const bMin = Math.max(...b.points.map((p) => { const rp = rotatePoint(p.x, p.y, rot); return rp.x + rp.y; }));
       return bMin - aMin;
     });
 
-    // 1) 정확한 바닥 폴리곤
-    for (const room of sorted) {
-      const poly = room.points.map((p) => toIso(p.x, p.y));
-      if (pointInPoly(iso.x, iso.y, poly)) {
-        return { roomId: room.id, part: 'floor' };
-      }
-    }
-
-    // 2) 벽 사다리꼴 — door / baseboard / wall 분기
+    // 1) 벽 사다리꼴 — 렌더링에서 벽이 바닥 위에 그려지므로 먼저 검사
     for (const room of sorted) {
       const pts = room.points;
       for (let i = 0; i < pts.length; i++) {
         const p1 = pts[i];
         const p2 = pts[(i + 1) % pts.length];
-        const b1 = toIso(p1.x, p1.y);
-        const b2 = toIso(p2.x, p2.y);
-        const t1 = toIso(p1.x, p1.y, room.wallHeight);
-        const t2 = toIso(p2.x, p2.y, room.wallHeight);
+        const b1 = rIso(p1.x, p1.y);
+        const b2 = rIso(p2.x, p2.y);
+        const t1 = rIso(p1.x, p1.y, room.wallHeight);
+        const t2 = rIso(p2.x, p2.y, room.wallHeight);
         const quad = [b1, b2, t2, t1];
         if (!pointInPoly(iso.x, iso.y, quad)) continue;
 
-        // 벽 안 클릭 — 어느 부위인지 추가 판정
-        // 변의 길이 / door 매칭
         const dx = p2.x - p1.x;
         const dy = p2.y - p1.y;
         const len = Math.hypot(dx, dy);
 
-        // 도어 영역 검사 (매칭 거리 1m로 확대)
         if (len > 0.01) {
           for (const d of floorPlan.doors) {
             const ddx = d.position.x - p1.x;
@@ -217,11 +215,11 @@ export function IsometricCanvas({
               const half = d.width / 2 / len;
               const tStart = Math.max(0, tProj - half);
               const tEnd = Math.min(1, tProj + half);
-              const dq1 = toIso(p1.x + dx * tStart, p1.y + dy * tStart);
-              const dq2 = toIso(p1.x + dx * tEnd, p1.y + dy * tEnd);
+              const dq1 = rIso(p1.x + dx * tStart, p1.y + dy * tStart);
+              const dq2 = rIso(p1.x + dx * tEnd, p1.y + dy * tEnd);
               const doorH = room.wallHeight * 0.75;
-              const dt1 = toIso(p1.x + dx * tStart, p1.y + dy * tStart, doorH);
-              const dt2 = toIso(p1.x + dx * tEnd, p1.y + dy * tEnd, doorH);
+              const dt1 = rIso(p1.x + dx * tStart, p1.y + dy * tStart, doorH);
+              const dt2 = rIso(p1.x + dx * tEnd, p1.y + dy * tEnd, doorH);
               const doorQuad = [dq1, dq2, dt2, dt1];
               if (pointInPoly(iso.x, iso.y, doorQuad)) {
                 return { roomId: room.id, part: 'door' };
@@ -230,10 +228,9 @@ export function IsometricCanvas({
           }
         }
 
-        // 걸레받이 영역 (벽 하단 ~25%로 확대)
         const bbH = room.wallHeight * 0.25;
-        const bb1 = toIso(p1.x, p1.y, bbH);
-        const bb2 = toIso(p2.x, p2.y, bbH);
+        const bb1 = rIso(p1.x, p1.y, bbH);
+        const bb2 = rIso(p2.x, p2.y, bbH);
         const bbQuad = [b1, b2, bb2, bb1];
         if (pointInPoly(iso.x, iso.y, bbQuad)) {
           return { roomId: room.id, part: 'baseboard' };
@@ -243,15 +240,23 @@ export function IsometricCanvas({
       }
     }
 
-    // 3) 방이 시각적으로 가린 영역 — 천장 폴리곤(z=wallHeight)으로 fallback
+    // 2) 바닥 폴리곤
     for (const room of sorted) {
-      const ceilingPoly = room.points.map((p) => toIso(p.x, p.y, room.wallHeight));
+      const poly = room.points.map((p) => rIso(p.x, p.y));
+      if (pointInPoly(iso.x, iso.y, poly)) {
+        return { roomId: room.id, part: 'floor' };
+      }
+    }
+
+    // 3) 천장 폴리곤 fallback
+    for (const room of sorted) {
+      const ceilingPoly = room.points.map((p) => rIso(p.x, p.y, room.wallHeight));
       if (pointInPoly(iso.x, iso.y, ceilingPoly)) {
         return { roomId: room.id, part: 'floor' };
       }
     }
 
-    // 4) Fallback — 클릭에서 가장 가까운 floor poly edge를 가진 방 선택
+    // 4) Fallback — 가장 가까운 edge
     const distToSegment = (px: number, py: number, x1: number, y1: number, x2: number, y2: number) => {
       const dx = x2 - x1;
       const dy = y2 - y1;
@@ -264,7 +269,7 @@ export function IsometricCanvas({
     let bestRoom: typeof sorted[number] | null = null;
     let bestDist = Infinity;
     for (const room of sorted) {
-      const poly = room.points.map((p) => toIso(p.x, p.y));
+      const poly = room.points.map((p) => rIso(p.x, p.y));
       for (let i = 0; i < poly.length; i++) {
         const a = poly[i];
         const b = poly[(i + 1) % poly.length];
@@ -331,7 +336,39 @@ export function IsometricCanvas({
     }
   };
 
-  const resetCamera = () => setCamera({ x: 0, y: 0, zoom: 1 });
+  const resetCamera = () => setCamera({ x: 0, y: 0, zoom: 1, rotation: 0 });
+
+  const rotate = (dir: 1 | -1) => {
+    setCamera((c) => {
+      const newRot = ((c.rotation + dir * 90) % 360 + 360) % 360;
+      return { ...c, rotation: newRot };
+    });
+    // 회전 후 auto-fit
+    setTimeout(() => {
+      const wrap = wrapRef.current;
+      if (!wrap || floorPlan.rooms.length === 0) return;
+      const rect = wrap.getBoundingClientRect();
+      if (rect.width === 0 || rect.height === 0) return;
+      setCamera((c) => {
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+        for (const room of floorPlan.rooms) {
+          for (const p of room.points) {
+            const rp = rotatePoint(p.x, p.y, c.rotation);
+            const base = toIso(rp.x, rp.y);
+            if (base.x < minX) minX = base.x;
+            if (base.y < minY) minY = base.y;
+            if (base.x > maxX) maxX = base.x;
+            if (base.y > maxY) maxY = base.y;
+            const top = toIso(rp.x, rp.y, room.wallHeight);
+            if (top.y < minY) minY = top.y;
+          }
+        }
+        if (!isFinite(minX)) return c;
+        const cam = fitCameraToBounds({ minX, minY, maxX, maxY }, rect.width, rect.height, 60);
+        return { ...cam, rotation: c.rotation };
+      });
+    }, 0);
+  };
 
   return (
     <div ref={wrapRef} className="relative flex-1 overflow-hidden bg-neutral-100">
@@ -357,6 +394,20 @@ export function IsometricCanvas({
           className="bg-white rounded-lg border border-neutral-200 px-3 py-1.5 text-sm shadow-sm"
         >
           −
+        </button>
+        <button
+          onClick={() => rotate(-1)}
+          className="bg-white rounded-lg border border-neutral-200 px-3 py-1.5 text-sm shadow-sm"
+          aria-label="반시계 회전"
+        >
+          ↺
+        </button>
+        <button
+          onClick={() => rotate(1)}
+          className="bg-white rounded-lg border border-neutral-200 px-3 py-1.5 text-sm shadow-sm"
+          aria-label="시계 회전"
+        >
+          ↻
         </button>
         <button
           onClick={resetCamera}

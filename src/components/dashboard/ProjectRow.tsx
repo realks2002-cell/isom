@@ -17,15 +17,14 @@ interface Props {
   folders: Folder[];
 }
 
-function formatDate(iso: string): string {
+function formatDateTime(iso: string): string {
   const date = new Date(iso);
-  const now = Date.now();
-  const diff = now - date.getTime();
-  const day = 24 * 60 * 60 * 1000;
-  if (diff < day) return '오늘';
-  if (diff < 2 * day) return '어제';
-  if (diff < 7 * day) return `${Math.floor(diff / day)}일 전`;
-  return date.toLocaleDateString('ko-KR');
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  const h = String(date.getHours()).padStart(2, '0');
+  const min = String(date.getMinutes()).padStart(2, '0');
+  return `${y}.${m}.${d} ${h}:${min}`;
 }
 
 export function ProjectRow({
@@ -58,38 +57,44 @@ export function ProjectRow({
   return (
     <Link
       href={`/editor/${id}`}
-      className="group flex items-center gap-3 px-3 py-2.5 hover:bg-neutral-50 border-b border-neutral-100 last:border-b-0"
+      className="group overflow-hidden border border-neutral-200 bg-white transition hover:shadow-md"
     >
-      <div className="flex-shrink-0 w-[72px] h-12 rounded-lg bg-neutral-100 overflow-hidden flex items-center justify-center">
+      <div className="relative aspect-[4/3] bg-neutral-100">
         {thumbnailUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={thumbnailUrl}
             alt={name}
-            className="w-full h-full object-cover"
+            className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]"
           />
         ) : (
-          <ImageIcon size={18} className="text-neutral-300" />
+          <div className="flex h-full items-center justify-center text-neutral-300">
+            <ImageIcon size={32} />
+          </div>
         )}
       </div>
-      <div className="flex-1 min-w-0">
-        <p className="font-medium text-sm text-neutral-900 truncate">{name}</p>
-        <p className="text-xs text-neutral-500 mt-0.5">{formatDate(updatedAt)}</p>
-      </div>
-      <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition">
-        <MoveToFolderMenu
-          projectId={id}
-          currentFolderId={folderId}
-          folders={folders}
-        />
-        <button
-          onClick={handleDelete}
-          disabled={isPending}
-          aria-label="삭제"
-          className="rounded-md p-1.5 text-neutral-500 hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
-        >
-          <Trash2 size={14} />
-        </button>
+      <div className="p-4">
+        <h3 className="truncate text-[15px] font-black tracking-tight text-neutral-900">
+          {name}
+        </h3>
+        <p className="mt-1 text-[11px] tracking-wider text-neutral-400">
+          {formatDateTime(updatedAt)}
+        </p>
+        <div className="mt-3 flex items-center gap-1.5 opacity-0 transition group-hover:opacity-100">
+          <MoveToFolderMenu
+            projectId={id}
+            currentFolderId={folderId}
+            folders={folders}
+          />
+          <button
+            onClick={handleDelete}
+            disabled={isPending}
+            aria-label="삭제"
+            className="rounded-md p-1.5 text-neutral-400 hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
+          >
+            <Trash2 size={14} />
+          </button>
+        </div>
       </div>
     </Link>
   );

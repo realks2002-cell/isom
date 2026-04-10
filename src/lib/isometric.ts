@@ -2,6 +2,19 @@ import type { Point2D } from '@/types/room';
 
 export const SCALE = 38;
 
+export function rotatePoint(x: number, y: number, rotation: number): Point2D {
+  switch (((rotation % 360) + 360) % 360) {
+    case 90:  return { x: -y, y: x };
+    case 180: return { x: -x, y: -y };
+    case 270: return { x: y, y: -x };
+    default:  return { x, y };
+  }
+}
+
+export function unrotatePoint(x: number, y: number, rotation: number): Point2D {
+  return rotatePoint(x, y, (360 - ((rotation % 360) + 360) % 360) % 360);
+}
+
 export function toIso(x: number, y: number, z = 0): Point2D {
   return {
     x: (x - y) * SCALE * 0.866,

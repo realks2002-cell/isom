@@ -125,7 +125,7 @@ export function EditorCanvas({
 
   const initCam =
     initialCamera && typeof initialCamera.zoom === 'number'
-      ? { x: initialCamera.offsetX, y: initialCamera.offsetY, zoom: initialCamera.zoom }
+      ? { x: initialCamera.offsetX, y: initialCamera.offsetY, zoom: initialCamera.zoom, rotation: initialCamera.rotation ?? 0 }
       : undefined;
 
   const selectedRoom = floorPlan.rooms.find((r) => r.id === selection?.roomId);
@@ -133,6 +133,26 @@ export function EditorCanvas({
   const safeSetStatus = useCallback((s: SaveStatus) => {
     if (mountedRef.current) setStatus(s);
   }, []);
+
+  const thumbSent = useRef(false);
+  const captureThumbnail = useCallback(() => {
+    if (thumbSent.current) return;
+    const canvas = document.querySelector('canvas') as HTMLCanvasElement | null;
+    if (!canvas) return;
+    thumbSent.current = true;
+    try {
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
+      fetch(`/api/iso-projects/${projectId}/thumbnail`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dataUrl }),
+      }).catch(() => {});
+    } catch {
+      // ignore
+    }
+    // 30초 후 다시 가능
+    setTimeout(() => { thumbSent.current = false; }, 30000);
+  }, [projectId]);
 
   const flush = useCallback(
     async (useKeepalive = false) => {
@@ -163,6 +183,7 @@ export function EditorCanvas({
           if (!res.ok) throw new Error('save failed');
         }
         safeSetStatus('saved');
+        captureThumbnail();
         if (statusTimer.current) clearTimeout(statusTimer.current);
         statusTimer.current = setTimeout(() => {
           if (mountedRef.current) setStatus((s) => (s === 'saved' ? 'idle' : s));
@@ -228,8 +249,8 @@ export function EditorCanvas({
   // 카메라 변경 핸들러 — 첫 마운트(초기 camera 세팅) 이벤트는 skip (C2, M6)
   const cameraInited = useRef(false);
   const handleCameraChange = useCallback(
-    (cam: { x: number; y: number; zoom: number }) => {
-      latestCamera.current = { zoom: cam.zoom, offsetX: cam.x, offsetY: cam.y };
+    (cam: { x: number; y: number; zoom: number; rotation: number }) => {
+      latestCamera.current = { zoom: cam.zoom, offsetX: cam.x, offsetY: cam.y, rotation: cam.rotation };
       if (!cameraInited.current) {
         cameraInited.current = true;
         return;

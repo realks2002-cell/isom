@@ -6,7 +6,14 @@ import type {
   MaterialAssignment,
   PartType,
 } from '@/types/room';
-import { SCALE, toIso, darken, polygonCenter } from './isometric';
+import { SCALE, toIso as _toIso, darken, polygonCenter, rotatePoint } from './isometric';
+import type { Point2D } from '@/types/room';
+
+let _rotation = 0;
+function toIso(x: number, y: number, z = 0): Point2D {
+  const r = rotatePoint(x, y, _rotation);
+  return _toIso(r.x, r.y, z);
+}
 import { drawFloorPattern } from './patterns';
 
 export interface Selection {
@@ -21,12 +28,13 @@ export interface RenderState {
   width: number;
   height: number;
   dpr: number;
+  rotation?: number;
 }
 
 function sortRoomsBackToFront(rooms: Room[]): Room[] {
   return [...rooms].sort((a, b) => {
-    const aMin = Math.min(...a.points.map((p) => p.x + p.y));
-    const bMin = Math.min(...b.points.map((p) => p.x + p.y));
+    const aMin = Math.min(...a.points.map((p) => { const r = rotatePoint(p.x, p.y, _rotation); return r.x + r.y; }));
+    const bMin = Math.min(...b.points.map((p) => { const r = rotatePoint(p.x, p.y, _rotation); return r.x + r.y; }));
     return aMin - bMin;
   });
 }
@@ -35,9 +43,10 @@ interface WallSide {
   side: 'back' | 'front' | 'left' | 'right';
 }
 
-// 벡터 각도 → 4방향 분류 (대각선 벽도 포함)
+// 벡터 각도 → 4방향 분류 (회전 반영)
 function classifySide(dx: number, dy: number): WallSide['side'] {
-  const angle = Math.atan2(dy, dx); // -π..π
+  const r = rotatePoint(dx, dy, _rotation);
+  const angle = Math.atan2(r.y, r.x);
   const deg = (angle * 180) / Math.PI;
   if (deg >= -45 && deg < 45) return 'back';
   if (deg >= 45 && deg < 135) return 'right';
@@ -279,6 +288,7 @@ function drawWallTopCaps(ctx: CanvasRenderingContext2D, room: Room) {
 
 export function render(ctx: CanvasRenderingContext2D, state: RenderState) {
   const { floorPlan, camera, selection, width, height, dpr } = state;
+  _rotation = state.rotation ?? 0;
 
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.clearRect(0, 0, width * dpr, height * dpr);
@@ -296,7 +306,7 @@ export function render(ctx: CanvasRenderingContext2D, state: RenderState) {
 
   // 1) 바닥
   for (const room of sorted) {
-    drawFloorPattern(ctx, room.points, room.floor);
+    drawFloorPattern(ctx, room.points, room.floor, _rotation);
 
     if (selection?.roomId === room.id && selection.part === 'floor') {
       const iso = room.points.map((p) => toIso(p.x, p.y));
@@ -355,25 +365,44 @@ export function render(ctx: CanvasRenderingContext2D, state: RenderState) {
     }
   }
 
-  // 3) 내부 벽 (LINE 세그먼트)
+  // 3) 내부 벽 (LINE 세그먼트) — 인접 방의 벽 자재를 따름
   if (floorPlan.internalWalls && floorPlan.internalWalls.length > 0) {
-    const defaultMat: MaterialAssignment = {
-      materialId: '',
-      color: sorted[0]?.wall.color ?? '#ece6dc',
-      patternType: 'solid',
-    };
     const defaultHeight = sorted[0]?.wallHeight ?? 2.7;
+
+    // 세그먼트 중점에서 가장 가까운 방 찾기
+    const findNearestRoom = (mx: number, my: number) => {
+      let best = sorted[0];
+      let bestDist = Infinity;
+      for (const room of sorted) {
+        let cx = 0, cy = 0;
+        for (const p of room.points) { cx += p.x; cy += p.y; }
+        cx /= room.points.length; cy /= room.points.length;
+        const d = Math.hypot(mx - cx, my - cy);
+        if (d < bestDist) { bestDist = d; best = room; }
+      }
+      return best;
+    };
+
     // Z-정렬: 뒤쪽 세그먼트부터
     const sortedSegs = [...floorPlan.internalWalls].sort((a, b) => {
-      const aMin = Math.min(a.a.x + a.a.y, a.b.x + a.b.y);
-      const bMin = Math.min(b.a.x + b.a.y, b.b.x + b.b.y);
+      const ra1 = rotatePoint(a.a.x, a.a.y, _rotation);
+      const ra2 = rotatePoint(a.b.x, a.b.y, _rotation);
+      const rb1 = rotatePoint(b.a.x, b.a.y, _rotation);
+      const rb2 = rotatePoint(b.b.x, b.b.y, _rotation);
+      const aMin = Math.min(ra1.x + ra1.y, ra2.x + ra2.y);
+      const bMin = Math.min(rb1.x + rb1.y, rb2.x + rb2.y);
       return aMin - bMin;
     });
     for (const seg of sortedSegs) {
+      const mx = (seg.a.x + seg.b.x) / 2;
+      const my = (seg.a.y + seg.b.y) / 2;
+      const nearest = findNearestRoom(mx, my);
+      const wallMat = nearest?.wall ?? { materialId: '', color: '#ece6dc', patternType: 'solid' as const };
+      const bbMat = nearest?.baseboard ?? wallMat;
+      const doorMat = nearest?.door;
+
       const side = classifySide(seg.b.x - seg.a.x, seg.b.y - seg.a.y);
-      // 내부 벽에도 문/창 매칭 — roomId는 모든 방 대상으로 시도
       const door = matchDoorForSegment(floorPlan.doors, seg.a.x, seg.a.y, seg.b.x, seg.b.y);
-      // 내부 벽의 경우 창문은 특정 room 제한 없이 모두 체크
       let win: { posT: number; width: number } | null = null;
       const len = Math.hypot(seg.b.x - seg.a.x, seg.b.y - seg.a.y);
       if (len > 0.01) {
@@ -392,7 +421,7 @@ export function render(ctx: CanvasRenderingContext2D, state: RenderState) {
           }
         }
       }
-      drawWall(ctx, seg.a.x, seg.a.y, seg.b.x, seg.b.y, defaultHeight, defaultMat, sorted[0]?.baseboard ?? defaultMat, side, door, win, sorted[0]?.door);
+      drawWall(ctx, seg.a.x, seg.a.y, seg.b.x, seg.b.y, defaultHeight, wallMat, bbMat, side, door, win, doorMat);
     }
   }
 
