@@ -122,6 +122,24 @@ export async function updatePortfolio(formData: FormData): Promise<ActionResult>
   redirect('/admin/portfolio');
 }
 
+export async function reorderPortfolio(order: { id: string; sort_order: number }[]): Promise<ActionResult> {
+  const err = await guard();
+  if (err) return { error: err };
+
+  const admin = createAdminClient();
+  for (const { id, sort_order } of order) {
+    const { error: dbErr } = await admin
+      .from('iso_portfolio_items')
+      .update({ sort_order })
+      .eq('id', id);
+    if (dbErr) return { error: dbErr.message };
+  }
+
+  revalidatePath('/admin/portfolio');
+  revalidatePath('/');
+  return { ok: true };
+}
+
 export async function deletePortfolio(formData: FormData): Promise<ActionResult> {
   const err = await guard();
   if (err) return { error: err };
