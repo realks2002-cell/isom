@@ -9,7 +9,8 @@ import { IsometricCanvas } from '@/components/canvas/IsometricCanvas';
 import { MaterialPanel } from '@/components/ui/MaterialPanel';
 import { ExportButton } from './ExportButton';
 import { AiRenderPanel } from '@/components/ai/AiRenderPanel';
-import { Sparkles, Palette } from 'lucide-react';
+import { Sparkles, Palette, Save, Building2 } from 'lucide-react';
+import { BUILDING_TYPES, type BuildingType } from '@/lib/building-types';
 
 type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
 
@@ -103,6 +104,9 @@ export function EditorCanvas({
   const [selection, setSelection] = useState<Selection | null>(null);
   const [status, setStatus] = useState<SaveStatus>('idle');
   const [aiOpen, setAiOpen] = useState(false);
+  const [buildingType, setBuildingType] = useState<BuildingType>(
+    (normalized.buildingType as BuildingType) || 'apartment'
+  );
 
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const statusTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -234,15 +238,55 @@ export function EditorCanvas({
     return () => window.removeEventListener('beforeunload', handler);
   }, [status]);
 
-  const handleApply = (part: PartType, material: Material) => {
-    if (!selection) return;
+  const handleBuildingTypeChange = (bt: BuildingType) => {
+    setBuildingType(bt);
+    isDirty.current = true;
+    setFloorPlan((prev) => ({ ...prev, buildingType: bt }));
+    scheduleSave();
+  };
+
+  const handleRename = (roomId: string, name: string) => {
     isDirty.current = true;
     setFloorPlan((prev) => ({
       ...prev,
-      rooms: prev.rooms.map((r) =>
-        r.id === selection.roomId ? { ...r, [part]: toAssignment(material) } : r
-      ),
+      rooms: prev.rooms.map((r) => (r.id === roomId ? { ...r, name } : r)),
     }));
+    scheduleSave();
+  };
+
+  const handleApply = (part: PartType, material: Material) => {
+    if (!selection) return;
+    isDirty.current = true;
+    const assign = toAssignment(material);
+
+    if (part === 'wall' && selection.wallIndex !== undefined) {
+      // 개별 벽
+      setFloorPlan((prev) => ({
+        ...prev,
+        rooms: prev.rooms.map((r) =>
+          r.id === selection.roomId
+            ? { ...r, walls: { ...(r.walls ?? {}), [selection.wallIndex!]: assign } }
+            : r
+        ),
+      }));
+    } else if (part === 'wall') {
+      // 전체 벽 — 개별 오버라이드 초기화
+      setFloorPlan((prev) => ({
+        ...prev,
+        rooms: prev.rooms.map((r) =>
+          r.id === selection.roomId
+            ? { ...r, wall: assign, walls: undefined }
+            : r
+        ),
+      }));
+    } else {
+      setFloorPlan((prev) => ({
+        ...prev,
+        rooms: prev.rooms.map((r) =>
+          r.id === selection.roomId ? { ...r, [part]: assign } : r
+        ),
+      }));
+    }
     scheduleSave();
   };
 
@@ -273,6 +317,25 @@ export function EditorCanvas({
   return (
     <div className="flex-1 flex flex-col relative">
       <div className="absolute top-3 right-3 z-20 flex gap-2">
+        <div className="relative">
+          <select
+            value={buildingType}
+            onChange={(e) => handleBuildingTypeChange(e.target.value as BuildingType)}
+            className="appearance-none rounded-lg bg-white text-neutral-900 border border-neutral-200 pl-7 pr-3 py-1.5 text-xs font-medium hover:bg-neutral-50 shadow-sm cursor-pointer"
+          >
+            {BUILDING_TYPES.map((bt) => (
+              <option key={bt.value} value={bt.value}>{bt.label}</option>
+            ))}
+          </select>
+          <Building2 size={13} className="absolute left-2 top-1/2 -translate-y-1/2 text-neutral-500 pointer-events-none" />
+        </div>
+        <button
+          onClick={() => flush()}
+          disabled={status === 'saving'}
+          className="flex items-center gap-1.5 rounded-lg bg-white text-neutral-900 border border-neutral-200 px-3 py-1.5 text-xs font-medium hover:bg-neutral-50 shadow-sm disabled:opacity-50"
+        >
+          <Save size={14} /> {status === 'saving' ? '저장 중...' : '저장'}
+        </button>
         {floorPlan.rooms.length > 0 && (
           <button
             onClick={() =>
@@ -312,7 +375,7 @@ export function EditorCanvas({
                   ceiling: '천장',
                   door: '도어',
                 }[selection.part]
-              } 선택됨 — 자재를 적용하세요`
+              }${selection.wallIndex !== undefined ? ` ${selection.wallIndex + 1}면` : ''} 선택됨 — 자재를 적용하세요`
             : '영역을 클릭(또는 탭)하여 선택하세요'}
         </span>
         {statusLabel && (
@@ -340,10 +403,13 @@ export function EditorCanvas({
 
       {selectedRoom && selection && (
         <MaterialPanel
-          key={selection.roomId}
+          key={`${selection.roomId}-${selection.wallIndex ?? 'all'}`}
           room={selectedRoom}
           initialPart={selection.part}
+          wallIndex={selection.wallIndex}
+          buildingType={buildingType}
           onApply={handleApply}
+          onRename={(name) => handleRename(selectedRoom.id, name)}
           onClose={() => setSelection(null)}
         />
       )}

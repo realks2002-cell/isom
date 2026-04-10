@@ -31,6 +31,7 @@ export interface Room {
   wallHeight: number;
   floor: MaterialAssignment;
   wall: MaterialAssignment;
+  walls?: Record<number, MaterialAssignment>;
   baseboard: MaterialAssignment;
   ceiling: MaterialAssignment;
   door: MaterialAssignment;
@@ -55,6 +56,7 @@ export interface Window {
 export interface WallSegment {
   a: Point2D;
   b: Point2D;
+  height?: number;
 }
 
 export interface FloorPlan {
@@ -63,4 +65,5 @@ export interface FloorPlan {
   windows: Window[];
   /** 외곽에 포함되지 않은 내부 벽 세그먼트 */
   internalWalls?: WallSegment[];
+  buildingType?: string;
 }

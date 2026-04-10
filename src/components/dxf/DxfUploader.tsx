@@ -2,11 +2,12 @@
 
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { Upload } from 'lucide-react';
+import { Upload, FileWarning, ExternalLink, X, Building2 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { parseDxf, type ParsedDxf } from '@/lib/dxf/parser';
 import { buildFloorPlan, type LayerMapping } from '@/lib/dxf-to-rooms';
 import { LayerMapper } from './LayerMapper';
+import { BUILDING_TYPES, type BuildingType } from '@/lib/building-types';
 
 export function DxfUploader({ projectId }: { projectId: string }) {
   const router = useRouter();
@@ -15,6 +16,8 @@ export function DxfUploader({ projectId }: { projectId: string }) {
   const [fileName, setFileName] = useState<string | null>(null);
   const [fileText, setFileText] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [dwgWarning, setDwgWarning] = useState(false);
+  const [buildingType, setBuildingType] = useState<BuildingType>('apartment');
   const [isPending, startTransition] = useTransition();
 
   const readFileAsText = async (file: File): Promise<{ text: string; method: string; bytes: number }> => {
@@ -57,7 +60,15 @@ export function DxfUploader({ projectId }: { projectId: string }) {
 
   const handleFile = async (file: File) => {
     setError(null);
+    setDwgWarning(false);
     setFileName(file.name);
+
+    const ext = file.name.split('.').pop()?.toLowerCase();
+    if (ext === 'dwg') {
+      setDwgWarning(true);
+      return;
+    }
+
     const sizeKB = Math.round(file.size / 1024);
     try {
       const { text, method, bytes } = await readFileAsText(file);
@@ -99,7 +110,7 @@ export function DxfUploader({ projectId }: { projectId: string }) {
       } = await supabase.auth.getUser();
       if (!user) return;
 
-      const floorPlan = buildFloorPlan(parsed, mapping);
+      const floorPlan = buildFloorPlan(parsed, mapping, buildingType);
       if (floorPlan.rooms.length === 0) {
         setError('닫힌 영역(방)을 찾지 못했습니다. 레이어 매핑을 다시 확인해주세요.');
         return;
@@ -143,12 +154,12 @@ export function DxfUploader({ projectId }: { projectId: string }) {
         <label className="cursor-pointer flex flex-col items-center gap-3 rounded-2xl border-2 border-dashed border-neutral-300 bg-white px-10 py-12 hover:border-neutral-900 transition">
           <Upload size={32} className="text-neutral-500" />
           <div className="text-center">
-            <p className="font-medium text-sm">DXF 파일 업로드</p>
-            <p className="text-xs text-neutral-500 mt-1">.dxf 파일을 선택하세요</p>
+            <p className="font-medium text-sm">도면 파일 업로드</p>
+            <p className="text-xs text-neutral-500 mt-1">.dxf 또는 .dwg 파일을 선택하세요</p>
           </div>
           <input
             type="file"
-            accept=".dxf"
+            accept=".dxf,.dwg"
             className="hidden"
             onChange={(e) => {
               const f = e.target.files?.[0];
@@ -157,6 +168,61 @@ export function DxfUploader({ projectId }: { projectId: string }) {
           />
           {error && <p className="text-xs text-red-600">{error}</p>}
         </label>
+
+        {dwgWarning && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+            <div className="bg-white rounded-2xl shadow-xl max-w-sm w-full mx-4 p-6">
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <FileWarning size={20} className="text-amber-500" />
+                  <h3 className="font-bold text-sm">DWG 파일 변환 필요</h3>
+                </div>
+                <button onClick={() => setDwgWarning(false)} className="p-1 hover:bg-neutral-100 rounded-lg">
+                  <X size={16} />
+                </button>
+              </div>
+
+              <p className="text-xs text-neutral-600 mb-4">
+                DWG 파일은 직접 읽을 수 없습니다. DXF로 변환 후 업로드해주세요.
+              </p>
+
+              <div className="space-y-3 mb-5">
+                <div className="bg-neutral-50 rounded-lg p-3">
+                  <p className="text-xs font-semibold mb-1">방법 1: CAD에서 변환</p>
+                  <p className="text-[11px] text-neutral-500">파일 → 다른 이름으로 저장 → DXF 선택</p>
+                </div>
+                <div className="bg-neutral-50 rounded-lg p-3">
+                  <p className="text-xs font-semibold mb-1">방법 2: 온라인 변환</p>
+                  <div className="flex flex-col gap-1.5 mt-1.5">
+                    <a
+                      href="https://cloudconvert.com/dwg-to-dxf"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1.5 text-[11px] text-blue-600 hover:underline"
+                    >
+                      <ExternalLink size={12} /> CloudConvert (무료)
+                    </a>
+                    <a
+                      href="https://convertio.co/kr/dwg-dxf/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1.5 text-[11px] text-blue-600 hover:underline"
+                    >
+                      <ExternalLink size={12} /> Convertio (무료)
+                    </a>
+                  </div>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setDwgWarning(false)}
+                className="w-full rounded-lg bg-neutral-900 text-white py-2 text-sm font-medium"
+              >
+                확인
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -169,6 +235,23 @@ export function DxfUploader({ projectId }: { projectId: string }) {
           <p className="text-xs text-neutral-500">
             단위: {parsed.unit.toUpperCase()} · 레이어 {parsed.layers.length}개
           </p>
+        </div>
+
+        <div className="flex items-center gap-3 rounded-2xl border border-neutral-200 bg-white px-4 py-3">
+          <Building2 size={16} className="text-neutral-500" />
+          <div className="flex-1">
+            <p className="text-sm font-medium">건물 유형</p>
+            <p className="text-xs text-neutral-500">유형에 따라 기본 마감재와 방 이름이 달라집니다</p>
+          </div>
+          <select
+            value={buildingType}
+            onChange={(e) => setBuildingType(e.target.value as BuildingType)}
+            className="rounded-lg border border-neutral-300 px-2 py-1.5 text-sm bg-white"
+          >
+            {BUILDING_TYPES.map((bt) => (
+              <option key={bt.value} value={bt.value}>{bt.label}</option>
+            ))}
+          </select>
         </div>
 
         <LayerMapper layers={parsed.layers} mapping={mapping} onChange={setMapping} />

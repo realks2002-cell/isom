@@ -6,6 +6,7 @@ import {
   type RenderStyle,
   type FurnitureLevel,
 } from './ai-render-prompts';
+import type { BuildingType } from './building-types';
 
 export type RenderQuality = 'fast' | 'high';
 
@@ -13,6 +14,7 @@ export interface RenderOptions {
   style: RenderStyle;
   quality: RenderQuality;
   furniture?: FurnitureLevel;
+  buildingType?: BuildingType;
 }
 
 const MODEL_FAST =
@@ -30,10 +32,12 @@ export async function renderWithNanoBanana(
 
   const ai = new GoogleGenAI({ apiKey });
   const model = options.quality === 'fast' ? MODEL_FAST : MODEL_HIGH;
+  const bt = options.buildingType ?? 'apartment';
   const prompt = buildRenderPrompt(
-    buildMaterialPrompt(rooms),
+    buildMaterialPrompt(rooms, bt),
     options.style,
-    options.furniture ?? 'none'
+    options.furniture ?? 'none',
+    bt
   );
 
   const response = await ai.models.generateContent({

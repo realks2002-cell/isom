@@ -1,5 +1,6 @@
 import type { FloorPlan, Point2D, Room, Door, Window, MaterialAssignment, WallSegment } from '@/types/room';
 import type { ParsedDxf, ArchPart } from './dxf/parser';
+import { DEFAULT_MATERIALS, type BuildingType } from './building-types';
 
 export interface LayerMapping {
   [layerName: string]: ArchPart;
@@ -147,16 +148,18 @@ function dedupePoints(points: Point2D[], threshold: number): Point2D[] {
   return result;
 }
 
-export function buildFloorPlan(parsed: ParsedDxf, mapping: LayerMapping): FloorPlan {
+export function buildFloorPlan(parsed: ParsedDxf, mapping: LayerMapping, buildingType: BuildingType = 'apartment'): FloorPlan {
   const scale = unitScale(parsed.unit);
   const wallLayers = new Set<string>();
   const doorLayers = new Set<string>();
   const windowLayers = new Set<string>();
+  const partitionLayers = new Set<string>();
 
   for (const [name, part] of Object.entries(mapping)) {
     if (part === 'wall') wallLayers.add(name);
     else if (part === 'door') doorLayers.add(name);
     else if (part === 'window') windowLayers.add(name);
+    else if (part === 'partition') partitionLayers.add(name);
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -229,16 +232,17 @@ export function buildFloorPlan(parsed: ParsedDxf, mapping: LayerMapping): FloorP
     });
   }
 
+  const mat = DEFAULT_MATERIALS[buildingType];
   const rooms: Room[] = rawPolys.map((poly, i) => ({
     id: `room-${i}`,
     name: `공간 ${i + 1}`,
     points: poly.map(normalize),
-    wallHeight: 2.7,
-    floor: { ...DEFAULT_MATERIAL, color: '#d4c5a9' },
-    wall: { ...DEFAULT_MATERIAL, color: '#ece6dc' },
-    baseboard: { ...DEFAULT_MATERIAL, color: '#8b7355' },
-    ceiling: { ...DEFAULT_MATERIAL, color: '#f5f0e8' },
-    door: { ...DEFAULT_MATERIAL, color: '#6B4C3B' },
+    wallHeight: 2.4,
+    floor: { ...mat.floor },
+    wall: { ...mat.wall },
+    baseboard: { ...mat.baseboard },
+    ceiling: { ...mat.ceiling },
+    door: { ...mat.door },
   }));
 
   // 문/창 간단 추출 + 근접 중복 제거 (원본 좌표계에서 50cm 기준 = 500mm)
@@ -279,5 +283,21 @@ export function buildFloorPlan(parsed: ParsedDxf, mapping: LayerMapping): FloorP
     };
   });
 
-  return { rooms, doors, windows, internalWalls };
+  // 칸막이 세그먼트 추출 (반높이 벽)
+  const partitionSegs = extractSegments(entities, partitionLayers);
+  const partitionWalls: WallSegment[] = [];
+  for (const seg of partitionSegs) {
+    const dx = seg.b.x - seg.a.x;
+    const dy = seg.b.y - seg.a.y;
+    if (dx * dx + dy * dy < 1e-6) continue;
+    partitionWalls.push({
+      a: normalize(seg.a),
+      b: normalize(seg.b),
+      height: 1.2,
+    });
+  }
+
+  const allInternalWalls = [...internalWalls, ...partitionWalls];
+
+  return { rooms, doors, windows, internalWalls: allInternalWalls, buildingType };
 }

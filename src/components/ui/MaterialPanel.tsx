@@ -1,39 +1,65 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
-import { X } from 'lucide-react';
+import { useState, useEffect, useMemo, useRef } from 'react';
+import { X, ChevronDown } from 'lucide-react';
 import { useMaterials } from '@/hooks/useMaterials';
 import type { Material } from '@/types/material';
 import type { PartType, Room } from '@/types/room';
 import { PartSelector } from './PartSelector';
 import { CategoryTabs } from './CategoryTabs';
 import { MaterialCard } from './MaterialCard';
+import { ROOM_PRESETS, type BuildingType } from '@/lib/building-types';
 
 interface Props {
   room: Room;
   initialPart: PartType;
+  wallIndex?: number;
+  buildingType: BuildingType;
   onApply: (part: PartType, material: Material) => void;
+  onRename: (name: string) => void;
   onClose: () => void;
 }
 
-export function MaterialPanel({ room, initialPart, onApply, onClose }: Props) {
+export function MaterialPanel({ room, initialPart, wallIndex, buildingType, onApply, onRename, onClose }: Props) {
   const [part, setPart] = useState<PartType>(initialPart);
   const { filteredCategories, getMaterialsByCategory, loading } = useMaterials(part);
   const [categoryId, setCategoryId] = useState<string | null>(null);
+  const [nameOpen, setNameOpen] = useState(false);
+  const [customInput, setCustomInput] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setCategoryId(filteredCategories[0]?.id ?? null);
   }, [part, filteredCategories.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const currentAssignment = room[part];
+  useEffect(() => {
+    if (customInput && inputRef.current) inputRef.current.focus();
+  }, [customInput]);
+
+  const currentAssignment =
+    part === 'wall' && wallIndex !== undefined
+      ? (room.walls?.[wallIndex] ?? room.wall)
+      : room[part];
   const materials = useMemo(
     () => (categoryId ? getMaterialsByCategory(categoryId) : []),
     [categoryId, getMaterialsByCategory]
   );
 
+  const handlePresetClick = (name: string) => {
+    onRename(name);
+    setNameOpen(false);
+    setCustomInput(false);
+  };
+
+  const handleCustomSubmit = (value: string) => {
+    const trimmed = value.trim();
+    if (trimmed) onRename(trimmed);
+    setNameOpen(false);
+    setCustomInput(false);
+  };
+
   return (
     <>
-      {/* 모바일 백드롭 — 클릭으로 닫히지 않음 (X 버튼만 닫힘) */}
       <div className="md:hidden fixed inset-0 bg-black/20 z-30 pointer-events-none" />
       <aside
         className="
@@ -43,9 +69,54 @@ export function MaterialPanel({ room, initialPart, onApply, onClose }: Props) {
         "
       >
         <div className="flex items-center justify-between px-4 py-3 border-b border-neutral-100">
-          <div>
-            <h2 className="text-sm font-bold">{room.name}</h2>
+          <div className="relative">
+            <button
+              onClick={() => { setNameOpen(!nameOpen); setCustomInput(false); }}
+              className="flex items-center gap-1 hover:bg-neutral-50 rounded-lg px-2 py-1 -mx-2 -my-1"
+            >
+              <h2 className="text-sm font-bold">{room.name}</h2>
+              <ChevronDown size={14} className="text-neutral-400" />
+            </button>
             <p className="text-[11px] text-neutral-500">마감재 선택</p>
+
+            {nameOpen && (
+              <div className="absolute top-8 left-0 z-50 bg-white border border-neutral-200 rounded-lg shadow-lg py-1 w-36">
+                {ROOM_PRESETS[buildingType].map((preset) => (
+                  <button
+                    key={preset.name}
+                    onClick={() => handlePresetClick(preset.name)}
+                    className={`w-full text-left px-3 py-1.5 text-xs hover:bg-neutral-50 ${
+                      room.name === preset.name ? 'text-blue-600 font-semibold' : 'text-neutral-700'
+                    }`}
+                  >
+                    {preset.name}
+                  </button>
+                ))}
+                <div className="border-t border-neutral-100 mt-1 pt-1">
+                  {customInput ? (
+                    <input
+                      ref={inputRef}
+                      type="text"
+                      defaultValue={room.name}
+                      className="w-full px-3 py-1.5 text-xs outline-none"
+                      placeholder="방 이름 입력"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') handleCustomSubmit(e.currentTarget.value);
+                        if (e.key === 'Escape') { setNameOpen(false); setCustomInput(false); }
+                      }}
+                      onBlur={(e) => handleCustomSubmit(e.currentTarget.value)}
+                    />
+                  ) : (
+                    <button
+                      onClick={() => setCustomInput(true)}
+                      className="w-full text-left px-3 py-1.5 text-xs text-neutral-500 hover:bg-neutral-50"
+                    >
+                      직접 입력...
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
           <button
             onClick={onClose}

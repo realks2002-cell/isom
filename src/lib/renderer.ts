@@ -19,6 +19,7 @@ import { drawFloorPattern } from './patterns';
 export interface Selection {
   roomId: string;
   part: PartType;
+  wallIndex?: number;
 }
 
 export interface RenderState {
@@ -258,22 +259,61 @@ function drawWallTopCaps(ctx: CanvasRenderingContext2D, room: Room) {
   const pts = room.points;
   const h = room.wallHeight;
   const thick = 0.12;
+  const n = pts.length;
 
-  for (let i = 0; i < pts.length; i++) {
+  // 각 꼭짓점에서 마이터 오프셋 계산
+  const offsets: Point2D[] = [];
+  for (let i = 0; i < n; i++) {
+    const prev = pts[(i - 1 + n) % n];
+    const curr = pts[i];
+    const next = pts[(i + 1) % n];
+
+    const d1x = curr.x - prev.x;
+    const d1y = curr.y - prev.y;
+    const len1 = Math.hypot(d1x, d1y);
+    const d2x = next.x - curr.x;
+    const d2y = next.y - curr.y;
+    const len2 = Math.hypot(d2x, d2y);
+
+    if (len1 < 1e-6 || len2 < 1e-6) {
+      offsets.push({ x: curr.x, y: curr.y });
+      continue;
+    }
+
+    // 두 변의 법선 (바깥쪽)
+    const n1x = -d1y / len1;
+    const n1y = d1x / len1;
+    const n2x = -d2y / len2;
+    const n2y = d2x / len2;
+
+    // 평균 법선
+    let mx = n1x + n2x;
+    let my = n1y + n2y;
+    const ml = Math.hypot(mx, my);
+    if (ml < 1e-6) {
+      mx = n1x;
+      my = n1y;
+    } else {
+      // 마이터 길이 보정: thick / cos(half-angle)
+      const dot = n1x * mx / ml + n1y * my / ml;
+      const scale = dot > 0.1 ? thick / dot : thick;
+      mx = (mx / ml) * scale;
+      my = (my / ml) * scale;
+    }
+
+    offsets.push({ x: curr.x + mx, y: curr.y + my });
+  }
+
+  for (let i = 0; i < n; i++) {
     const p1 = pts[i];
-    const p2 = pts[(i + 1) % pts.length];
-    const dx = p2.x - p1.x;
-    const dy = p2.y - p1.y;
-    const len = Math.sqrt(dx * dx + dy * dy);
-    if (len === 0) continue;
-
-    const nx = (-dy / len) * thick;
-    const ny = (dx / len) * thick;
+    const p2 = pts[(i + 1) % n];
+    const o1 = offsets[i];
+    const o2 = offsets[(i + 1) % n];
 
     const tp1 = toIso(p1.x, p1.y, h);
     const tp2 = toIso(p2.x, p2.y, h);
-    const tp3 = toIso(p2.x + nx, p2.y + ny, h);
-    const tp4 = toIso(p1.x + nx, p1.y + ny, h);
+    const tp3 = toIso(o2.x, o2.y, h);
+    const tp4 = toIso(o1.x, o1.y, h);
 
     ctx.beginPath();
     ctx.moveTo(tp1.x, tp1.y);
@@ -338,12 +378,16 @@ export function render(ctx: CanvasRenderingContext2D, state: RenderState) {
       const door = matchDoorForSegment(floorPlan.doors, p1.x, p1.y, p2.x, p2.y);
       const win = matchWindowForSegment(floorPlan.windows, room.id, p1.x, p1.y, p2.x, p2.y);
       const highlightDoor = selection?.roomId === room.id && selection.part === 'door';
-      drawWall(ctx, p1.x, p1.y, p2.x, p2.y, room.wallHeight, room.wall, room.baseboard, side, door, win, room.door, highlightDoor);
+      const wallMat = room.walls?.[i] ?? room.wall;
+      drawWall(ctx, p1.x, p1.y, p2.x, p2.y, room.wallHeight, wallMat, room.baseboard, side, door, win, room.door, highlightDoor);
     }
 
-    // 벽/걸레받이 선택 하이라이트 — 각 벽 사다리꼴 윤곽선
+    // 벽/걸레받이 선택 하이라이트
     if (selection?.roomId === room.id && (selection.part === 'wall' || selection.part === 'baseboard')) {
       for (let i = 0; i < pts.length; i++) {
+        // 개별 선택 시 해당 벽만 하이라이트
+        if (selection.wallIndex !== undefined && selection.wallIndex !== i) continue;
+
         const p1 = pts[i];
         const p2 = pts[(i + 1) % pts.length];
         const b1 = toIso(p1.x, p1.y);
@@ -356,10 +400,10 @@ export function render(ctx: CanvasRenderingContext2D, state: RenderState) {
         ctx.lineTo(t2.x, t2.y);
         ctx.lineTo(t1.x, t1.y);
         ctx.closePath();
-        ctx.fillStyle = 'rgba(233,69,96,0.2)';
+        ctx.fillStyle = selection.wallIndex !== undefined ? 'rgba(233,69,96,0.45)' : 'rgba(233,69,96,0.2)';
         ctx.fill();
         ctx.strokeStyle = '#e94560';
-        ctx.lineWidth = 2.5;
+        ctx.lineWidth = selection.wallIndex !== undefined ? 3.5 : 2.5;
         ctx.stroke();
       }
     }

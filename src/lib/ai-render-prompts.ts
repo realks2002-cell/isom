@@ -1,6 +1,7 @@
 import type { Room } from '@/types/room';
+import { AI_CONTEXT, getRoomEnglish, type BuildingType } from './building-types';
 
-export type RenderStyle = 'modern' | 'classic' | 'minimal' | 'luxury' | 'scandinavian';
+export type RenderStyle = 'modern' | 'classic' | 'minimal' | 'luxury' | 'scandinavian' | 'clinical' | 'cozy';
 export type FurnitureLevel = 'none' | 'minimal' | 'full';
 
 const STYLE_DESCRIPTIONS: Record<RenderStyle, string> = {
@@ -9,6 +10,8 @@ const STYLE_DESCRIPTIONS: Record<RenderStyle, string> = {
   minimal: 'minimalist interior with white walls, natural light, sparse furnishing',
   luxury: 'high-end luxury interior with premium materials and sophisticated lighting',
   scandinavian: 'Scandinavian interior with light wood, white walls, cozy natural textures',
+  clinical: 'clean clinical interior with bright fluorescent lighting, sterile white surfaces, medical-grade finishes',
+  cozy: 'warm cozy interior with ambient lighting, natural materials, inviting atmosphere',
 };
 
 function describeMaterial(assignment: { patternType: string; color: string }): string {
@@ -26,10 +29,12 @@ function describeMaterial(assignment: { patternType: string; color: string }): s
   return `${patternMap[assignment.patternType] ?? 'painted'} (${assignment.color})`;
 }
 
-export function buildMaterialPrompt(rooms: Room[]): string {
+export function buildMaterialPrompt(rooms: Room[], buildingType: BuildingType = 'apartment'): string {
   return rooms
     .map((r) => {
-      return `${r.name}: floor=${describeMaterial(r.floor)}, wall=${describeMaterial(
+      const en = getRoomEnglish(r.name, buildingType);
+      const label = en !== r.name ? `${r.name} (${en})` : r.name;
+      return `${label}: floor=${describeMaterial(r.floor)}, wall=${describeMaterial(
         r.wall
       )}, baseboard=${describeMaterial(r.baseboard)}`;
     })
@@ -47,9 +52,14 @@ const FURNITURE_INSTRUCTIONS: Record<FurnitureLevel, string> = {
 export function buildRenderPrompt(
   materialDesc: string,
   style: RenderStyle,
-  furniture: FurnitureLevel = 'none'
+  furniture: FurnitureLevel = 'none',
+  buildingType: BuildingType = 'apartment'
 ): string {
+  const context = AI_CONTEXT[buildingType];
+
   return `Transform this isometric floor plan into a photorealistic interior rendering.
+
+${context}
 
 This is an isometric architectural floor plan showing rooms with applied finish materials.
 Render it as a photorealistic 3D interior visualization from the same isometric perspective.

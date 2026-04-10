@@ -185,12 +185,28 @@ export function IsometricCanvas({
       return bMin - aMin;
     });
 
+    // 벽 면 가시성 판정: 이소메트릭에서 카메라는 (+1,+1) 방향에서 내려다봄
+    // 벽 법선이 카메라 쪽을 향해야(= 보여야) 히트 테스트 대상
+    const isWallVisible = (dx: number, dy: number) => {
+      // 회전 적용된 벽 방향 벡터
+      const r = rotatePoint(dx, dy, rot);
+      // 벽의 바깥쪽 법선 (왼쪽 법선: (-dy, dx))
+      const nx = -r.y;
+      const ny = r.x;
+      // 이소메트릭 카메라 방향 (+1, +1)과 내적 > 0이면 카메라를 향함
+      return nx + ny > 0;
+    };
+
     // 1) 벽 사다리꼴 — 렌더링에서 벽이 바닥 위에 그려지므로 먼저 검사
     for (const room of sorted) {
       const pts = room.points;
       for (let i = 0; i < pts.length; i++) {
         const p1 = pts[i];
         const p2 = pts[(i + 1) % pts.length];
+
+        // 보이지 않는 벽은 히트 테스트 skip
+        if (!isWallVisible(p2.x - p1.x, p2.y - p1.y)) continue;
+
         const b1 = rIso(p1.x, p1.y);
         const b2 = rIso(p2.x, p2.y);
         const t1 = rIso(p1.x, p1.y, room.wallHeight);
@@ -233,10 +249,10 @@ export function IsometricCanvas({
         const bb2 = rIso(p2.x, p2.y, bbH);
         const bbQuad = [b1, b2, bb2, bb1];
         if (pointInPoly(iso.x, iso.y, bbQuad)) {
-          return { roomId: room.id, part: 'baseboard' };
+          return { roomId: room.id, part: 'baseboard', wallIndex: i };
         }
 
-        return { roomId: room.id, part: 'wall' };
+        return { roomId: room.id, part: 'wall', wallIndex: i };
       }
     }
 
@@ -292,6 +308,33 @@ export function IsometricCanvas({
     return null;
   };
 
+  // 2단계 클릭: 1클릭=전체, 2클릭=개별 벽면
+  const handleHit = (hit: Selection | null) => {
+    if (!hit) { onSelect(null); return; }
+
+    const isWallLike = hit.part === 'wall' || hit.part === 'baseboard';
+
+    if (isWallLike && selection?.roomId === hit.roomId && selection.part === hit.part) {
+      if (selection.wallIndex === undefined) {
+        // 전체 → 개별
+        onSelect(hit);
+      } else if (selection.wallIndex === hit.wallIndex) {
+        // 같은 개별 벽 재클릭 → 전체로 돌아감
+        onSelect({ roomId: hit.roomId, part: hit.part });
+      } else {
+        // 다른 개별 벽 클릭
+        onSelect(hit);
+      }
+    } else {
+      // 다른 방/파트 → 전체 선택 (wallIndex 제거)
+      if (isWallLike) {
+        onSelect({ roomId: hit.roomId, part: hit.part });
+      } else {
+        onSelect(hit);
+      }
+    }
+  };
+
   const onMouseDown = (e: React.MouseEvent) => {
     dragRef.current = { sx: e.clientX, sy: e.clientY, cx: camera.x, cy: camera.y };
   };
@@ -309,7 +352,7 @@ export function IsometricCanvas({
     if (!d) return;
     const moved = Math.abs(e.clientX - d.sx) + Math.abs(e.clientY - d.sy);
     if (moved < 4) {
-      onSelect(hitTest(e.clientX, e.clientY));
+      handleHit(hitTest(e.clientX, e.clientY));
     }
   };
 
@@ -332,7 +375,7 @@ export function IsometricCanvas({
     if (!t) return;
     const moved = Math.abs(t.clientX - d.sx) + Math.abs(t.clientY - d.sy);
     if (moved < 6) {
-      onSelect(hitTest(t.clientX, t.clientY));
+      handleHit(hitTest(t.clientX, t.clientY));
     }
   };
 

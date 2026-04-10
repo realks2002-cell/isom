@@ -1,6 +1,6 @@
 import DxfParser from 'dxf-parser';
 
-export type ArchPart = 'wall' | 'door' | 'window' | 'ignore';
+export type ArchPart = 'wall' | 'door' | 'window' | 'partition' | 'ignore';
 
 export interface LayerInfo {
   name: string;
@@ -39,8 +39,10 @@ function detectUnit(insunits?: number): DxfUnit {
 const WALL_PATTERNS = [/wall/i, /벽/, /^a-?wall/i];
 const DOOR_PATTERNS = [/door/i, /문/, /^a-?door/i];
 const WINDOW_PATTERNS = [/window/i, /창/, /^a-?wind/i];
+const PARTITION_PATTERNS = [/partition/i, /파티션/, /칸막이/, /^a-?part/i, /^ff/i];
 
 function autoMapLayer(name: string): ArchPart {
+  if (PARTITION_PATTERNS.some((r) => r.test(name))) return 'partition';
   if (WALL_PATTERNS.some((r) => r.test(name))) return 'wall';
   if (DOOR_PATTERNS.some((r) => r.test(name))) return 'door';
   if (WINDOW_PATTERNS.some((r) => r.test(name))) return 'window';

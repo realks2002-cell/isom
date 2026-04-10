@@ -5,6 +5,7 @@ import type { LayerMapping } from '@/lib/dxf-to-rooms';
 
 const OPTIONS: { value: ArchPart; label: string }[] = [
   { value: 'wall', label: '벽' },
+  { value: 'partition', label: '칸막이' },
   { value: 'door', label: '문' },
   { value: 'window', label: '창문' },
   { value: 'ignore', label: '무시' },
