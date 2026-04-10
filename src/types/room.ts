@@ -53,10 +53,14 @@ export interface Window {
   roomId: string;
 }
 
+export type PartitionColor = 'black' | 'darkgray' | 'white';
+
 export interface WallSegment {
   a: Point2D;
   b: Point2D;
   height?: number;
+  partition?: boolean;
+  partitionColor?: PartitionColor;
 }
 
 export interface FloorPlan {
@@ -66,4 +70,5 @@ export interface FloorPlan {
   /** 외곽에 포함되지 않은 내부 벽 세그먼트 */
   internalWalls?: WallSegment[];
   buildingType?: string;
+  partitionColor?: PartitionColor;
 }

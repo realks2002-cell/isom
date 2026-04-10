@@ -5,6 +5,7 @@ import {
   buildRenderPrompt,
   type RenderStyle,
   type FurnitureLevel,
+  type LightingStyle,
 } from './ai-render-prompts';
 import type { BuildingType } from './building-types';
 
@@ -15,6 +16,7 @@ export interface RenderOptions {
   quality: RenderQuality;
   furniture?: FurnitureLevel;
   buildingType?: BuildingType;
+  lighting?: LightingStyle;
 }
 
 const MODEL_FAST =
@@ -37,7 +39,8 @@ export async function renderWithNanoBanana(
     buildMaterialPrompt(rooms, bt),
     options.style,
     options.furniture ?? 'none',
-    bt
+    bt,
+    options.lighting
   );
 
   const response = await ai.models.generateContent({

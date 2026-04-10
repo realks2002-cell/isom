@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import type { FloorPlan, PartType, MaterialAssignment } from '@/types/room';
+import type { FloorPlan, PartType, MaterialAssignment, PartitionColor } from '@/types/room';
 import type { Material } from '@/types/material';
 import type { Selection } from '@/lib/renderer';
 import type { CameraState } from '@/types/project';
@@ -9,7 +9,7 @@ import { IsometricCanvas } from '@/components/canvas/IsometricCanvas';
 import { MaterialPanel } from '@/components/ui/MaterialPanel';
 import { ExportButton } from './ExportButton';
 import { AiRenderPanel } from '@/components/ai/AiRenderPanel';
-import { Sparkles, Palette, Save, Building2 } from 'lucide-react';
+import { Sparkles, Palette, Save, Building2, Undo2 } from 'lucide-react';
 import { BUILDING_TYPES, type BuildingType } from '@/lib/building-types';
 
 type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
@@ -100,7 +100,25 @@ export function EditorCanvas({
       };
     }),
   };
-  const [floorPlan, setFloorPlan] = useState<FloorPlan>(normalized);
+  const [floorPlan, _setFloorPlan] = useState<FloorPlan>(normalized);
+  const historyRef = useRef<FloorPlan[]>([]);
+  const MAX_UNDO = 30;
+
+  const setFloorPlan = useCallback((updater: FloorPlan | ((prev: FloorPlan) => FloorPlan)) => {
+    _setFloorPlan((prev) => {
+      historyRef.current = [...historyRef.current.slice(-(MAX_UNDO - 1)), prev];
+      return typeof updater === 'function' ? updater(prev) : updater;
+    });
+  }, []);
+
+  const handleUndo = () => {
+    if (historyRef.current.length === 0) return;
+    const prev = historyRef.current.pop()!;
+    _setFloorPlan(prev);
+    isDirty.current = true;
+    scheduleSave();
+  };
+
   const [selection, setSelection] = useState<Selection | null>(null);
   const [status, setStatus] = useState<SaveStatus>('idle');
   const [aiOpen, setAiOpen] = useState(false);
@@ -226,6 +244,18 @@ export function EditorCanvas({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Ctrl+Z 단축키
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        handleUndo();
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [scheduleSave]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // beforeunload 경고
   useEffect(() => {
     const handler = (e: BeforeUnloadEvent) => {
@@ -244,6 +274,23 @@ export function EditorCanvas({
     setFloorPlan((prev) => ({ ...prev, buildingType: bt }));
     scheduleSave();
   };
+
+  const handleWallHeight = (height: number) => {
+    isDirty.current = true;
+    setFloorPlan((prev) => ({
+      ...prev,
+      rooms: prev.rooms.map((r) => ({ ...r, wallHeight: height })),
+    }));
+    scheduleSave();
+  };
+
+  const handlePartitionColor = (color: PartitionColor) => {
+    isDirty.current = true;
+    setFloorPlan((prev) => ({ ...prev, partitionColor: color }));
+    scheduleSave();
+  };
+
+  const hasPartitions = floorPlan.internalWalls?.some((w) => w.partition) ?? false;
 
   const handleRename = (roomId: string, name: string) => {
     isDirty.current = true;
@@ -290,6 +337,23 @@ export function EditorCanvas({
     scheduleSave();
   };
 
+  const handleApplyAll = (part: PartType, material: Material) => {
+    isDirty.current = true;
+    const assign = toAssignment(material);
+    if (part === 'wall') {
+      setFloorPlan((prev) => ({
+        ...prev,
+        rooms: prev.rooms.map((r) => ({ ...r, wall: assign, walls: undefined })),
+      }));
+    } else {
+      setFloorPlan((prev) => ({
+        ...prev,
+        rooms: prev.rooms.map((r) => ({ ...r, [part]: assign })),
+      }));
+    }
+    scheduleSave();
+  };
+
   // 카메라 변경 핸들러 — 첫 마운트(초기 camera 세팅) 이벤트는 skip (C2, M6)
   const cameraInited = useRef(false);
   const handleCameraChange = useCallback(
@@ -330,6 +394,27 @@ export function EditorCanvas({
           <Building2 size={13} className="absolute left-2 top-1/2 -translate-y-1/2 text-neutral-500 pointer-events-none" />
         </div>
         <button
+          onClick={handleUndo}
+          disabled={historyRef.current.length === 0}
+          className="flex items-center gap-1.5 rounded-lg bg-white text-neutral-900 border border-neutral-200 px-3 py-1.5 text-xs font-medium hover:bg-neutral-50 shadow-sm disabled:opacity-30"
+          title="되돌리기 (Undo)"
+        >
+          <Undo2 size={14} />
+        </button>
+        <div className="flex items-center gap-1.5 rounded-lg bg-white border border-neutral-200 px-2 py-1 shadow-sm">
+          <span className="text-[10px] text-neutral-500">벽</span>
+          <input
+            type="range"
+            min={0.5}
+            max={3.5}
+            step={0.1}
+            value={floorPlan.rooms[0]?.wallHeight ?? 2.4}
+            onChange={(e) => handleWallHeight(parseFloat(e.target.value))}
+            className="w-14 h-1 accent-neutral-600"
+          />
+          <span className="text-[10px] text-neutral-500 w-6">{(floorPlan.rooms[0]?.wallHeight ?? 2.4).toFixed(1)}</span>
+        </div>
+        <button
           onClick={() => flush()}
           disabled={status === 'saving'}
           className="flex items-center gap-1.5 rounded-lg bg-white text-neutral-900 border border-neutral-200 px-3 py-1.5 text-xs font-medium hover:bg-neutral-50 shadow-sm disabled:opacity-50"
@@ -346,6 +431,22 @@ export function EditorCanvas({
             <Palette size={14} /> 마감재
           </button>
         )}
+        {hasPartitions && (
+          <div className="flex items-center gap-1 rounded-lg bg-white border border-neutral-200 px-2 py-1 shadow-sm">
+            <span className="text-[10px] text-neutral-500 mr-1">칸막이</span>
+            {([['black', '#1a1a1a'], ['darkgray', '#555'], ['white', '#e0e0e0']] as [PartitionColor, string][]).map(([val, hex]) => (
+              <button
+                key={val}
+                onClick={() => handlePartitionColor(val)}
+                title={val === 'black' ? '검정' : val === 'darkgray' ? '짙은 회색' : '흰색'}
+                className={`w-5 h-5 rounded-full border-2 ${
+                  (floorPlan.partitionColor ?? 'black') === val ? 'border-blue-500' : 'border-neutral-300'
+                }`}
+                style={{ backgroundColor: hex }}
+              />
+            ))}
+          </div>
+        )}
         <button
           onClick={() => setAiOpen(true)}
           className="flex items-center gap-1.5 rounded-lg bg-yellow-500 text-neutral-900 px-3 py-1.5 text-xs font-bold hover:bg-yellow-400 shadow-sm"
@@ -358,11 +459,11 @@ export function EditorCanvas({
         floorPlan={floorPlan}
         selection={selection}
         onSelect={(sel) => {
-          // null(빈 공간 클릭)은 무시 — 패널은 X 버튼으로만 닫힘
           if (sel) setSelection(sel);
         }}
         initialCamera={initCam}
         onCameraChange={handleCameraChange}
+        hideWalls={selection?.part === 'floor'}
       />
       <div className="border-t border-neutral-200 bg-white px-4 py-2 text-xs text-neutral-600 flex items-center justify-between">
         <span>
@@ -397,19 +498,24 @@ export function EditorCanvas({
         <AiRenderPanel
           floorPlan={floorPlan}
           projectId={projectId}
+          buildingType={buildingType}
           onClose={() => setAiOpen(false)}
         />
       )}
 
       {selectedRoom && selection && (
         <MaterialPanel
-          key={`${selection.roomId}-${selection.wallIndex ?? 'all'}`}
+          key={selection.roomId}
           room={selectedRoom}
+          rooms={floorPlan.rooms}
           initialPart={selection.part}
           wallIndex={selection.wallIndex}
           buildingType={buildingType}
           onApply={handleApply}
+          onApplyAll={handleApplyAll}
           onRename={(name) => handleRename(selectedRoom.id, name)}
+          onSelectRoom={(roomId) => setSelection({ roomId, part: 'floor' })}
+          onPartChange={(part) => setSelection((prev) => prev ? { ...prev, part, wallIndex: undefined } : prev)}
           onClose={() => setSelection(null)}
         />
       )}

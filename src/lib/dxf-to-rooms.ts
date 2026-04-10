@@ -233,17 +233,55 @@ export function buildFloorPlan(parsed: ParsedDxf, mapping: LayerMapping, buildin
   }
 
   const mat = DEFAULT_MATERIALS[buildingType];
-  const rooms: Room[] = rawPolys.map((poly, i) => ({
-    id: `room-${i}`,
-    name: `공간 ${i + 1}`,
-    points: poly.map(normalize),
-    wallHeight: 2.4,
-    floor: { ...mat.floor },
-    wall: { ...mat.wall },
-    baseboard: { ...mat.baseboard },
-    ceiling: { ...mat.ceiling },
-    door: { ...mat.door },
-  }));
+
+  // 벽 두께 폴리곤 필터링 — 너무 좁은 것만 제거
+  // 정규화 후 좌표는 미터 단위
+  const MIN_AREA = 0;       // 일단 비활성화
+  const MIN_SHORT_SIDE = 0;  // 일단 비활성화
+
+  function polyArea(pts: Point2D[]): number {
+    let area = 0;
+    for (let i = 0; i < pts.length; i++) {
+      const j = (i + 1) % pts.length;
+      area += pts[i].x * pts[j].y - pts[j].x * pts[i].y;
+    }
+    return Math.abs(area) / 2;
+  }
+
+  function shortestSide(pts: Point2D[]): number {
+    let min = Infinity;
+    for (let i = 0; i < pts.length; i++) {
+      const j = (i + 1) % pts.length;
+      const d = Math.hypot(pts[j].x - pts[i].x, pts[j].y - pts[i].y);
+      if (d > 0.001 && d < min) min = d;
+    }
+    return min;
+  }
+
+  let roomIdx = 0;
+  const rooms: Room[] = [];
+  for (const poly of rawPolys) {
+    const normalized = poly.map(normalize);
+    const area = polyArea(normalized);
+    const shortest = shortestSide(normalized);
+    console.log(`[buildFloorPlan] poly ${roomIdx}: area=${area.toFixed(3)}㎡, shortest=${shortest.toFixed(3)}m, pts=${normalized.length}`);
+    if (area < MIN_AREA || shortest < MIN_SHORT_SIDE) {
+      console.log(`  → SKIPPED (벽 두께 폴리곤)`);
+      continue;
+    }
+    rooms.push({
+      id: `room-${roomIdx}`,
+      name: `공간 ${roomIdx + 1}`,
+      points: normalized,
+      wallHeight: 2.4,
+      floor: { ...mat.floor },
+      wall: { ...mat.wall },
+      baseboard: { ...mat.baseboard },
+      ceiling: { ...mat.ceiling },
+      door: { ...mat.door },
+    });
+    roomIdx++;
+  }
 
   // 문/창 간단 추출 + 근접 중복 제거 (원본 좌표계에서 50cm 기준 = 500mm)
   const dedupeThreshold = 0.5 / effectiveScale;
@@ -293,7 +331,7 @@ export function buildFloorPlan(parsed: ParsedDxf, mapping: LayerMapping, buildin
     partitionWalls.push({
       a: normalize(seg.a),
       b: normalize(seg.b),
-      height: 1.2,
+      partition: true,
     });
   }
 

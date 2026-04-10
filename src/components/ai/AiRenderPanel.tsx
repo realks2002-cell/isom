@@ -4,8 +4,10 @@ import { useState } from 'react';
 import { Sparkles, X, Loader2, Camera as CameraIcon } from 'lucide-react';
 import type { FloorPlan } from '@/types/room';
 import { captureFloorPlanBase64 } from '@/lib/export';
-import type { RenderStyle, FurnitureLevel } from '@/lib/ai-render-prompts';
+import type { RenderStyle, FurnitureLevel, LightingStyle } from '@/lib/ai-render-prompts';
+import { getDefaultLighting } from '@/lib/ai-render-prompts';
 import type { RenderQuality } from '@/lib/ai-render';
+import type { BuildingType } from '@/lib/building-types';
 
 const STYLES: { value: RenderStyle; label: string }[] = [
   { value: 'modern', label: '모던' },
@@ -13,6 +15,8 @@ const STYLES: { value: RenderStyle; label: string }[] = [
   { value: 'minimal', label: '미니멀' },
   { value: 'luxury', label: '럭셔리' },
   { value: 'scandinavian', label: '스칸디' },
+  { value: 'clinical', label: '클리니컬' },
+  { value: 'cozy', label: '코지' },
 ];
 
 const FURNITURE_OPTIONS: { value: FurnitureLevel; label: string; desc: string }[] = [
@@ -24,13 +28,15 @@ const FURNITURE_OPTIONS: { value: FurnitureLevel; label: string; desc: string }[
 interface Props {
   floorPlan: FloorPlan;
   projectId: string;
+  buildingType: BuildingType;
   onClose: () => void;
 }
 
-export function AiRenderPanel({ floorPlan, projectId, onClose }: Props) {
+export function AiRenderPanel({ floorPlan, projectId, buildingType, onClose }: Props) {
   const [style, setStyle] = useState<RenderStyle>('modern');
   const [quality, setQuality] = useState<RenderQuality>('fast');
   const [furniture, setFurniture] = useState<FurnitureLevel>('none');
+  const [lighting, setLighting] = useState<LightingStyle>(getDefaultLighting(buildingType));
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [resultUrl, setResultUrl] = useState<string | null>(null);
@@ -91,6 +97,8 @@ export function AiRenderPanel({ floorPlan, projectId, onClose }: Props) {
           style,
           quality,
           furniture,
+          lighting,
+          buildingType,
         }),
       });
       const json = await res.json();
@@ -195,6 +203,31 @@ export function AiRenderPanel({ floorPlan, projectId, onClose }: Props) {
                   }`}
                 >
                   고품질
+                </button>
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs font-medium mb-2">조명</label>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setLighting('practical')}
+                  className={`flex-1 py-2 text-xs font-medium rounded-lg border ${
+                    lighting === 'practical'
+                      ? 'bg-neutral-900 text-white border-neutral-900'
+                      : 'bg-white text-neutral-700 border-neutral-200'
+                  }`}
+                >
+                  실용 조명
+                </button>
+                <button
+                  onClick={() => setLighting('mood')}
+                  className={`flex-1 py-2 text-xs font-medium rounded-lg border ${
+                    lighting === 'mood'
+                      ? 'bg-neutral-900 text-white border-neutral-900'
+                      : 'bg-white text-neutral-700 border-neutral-200'
+                  }`}
+                >
+                  무드 조명
                 </button>
               </div>
             </div>

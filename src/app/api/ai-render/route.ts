@@ -1,7 +1,8 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { renderWithNanoBanana, type RenderQuality } from '@/lib/ai-render';
-import type { RenderStyle, FurnitureLevel } from '@/lib/ai-render-prompts';
+import type { RenderStyle, FurnitureLevel, LightingStyle } from '@/lib/ai-render-prompts';
+import type { BuildingType } from '@/lib/building-types';
 import type { Room } from '@/types/room';
 
 // Gemini 이미지 생성은 시간이 걸릴 수 있음
@@ -25,6 +26,8 @@ export async function POST(req: NextRequest) {
     style?: RenderStyle;
     quality?: RenderQuality;
     furniture?: FurnitureLevel;
+    lighting?: LightingStyle;
+    buildingType?: BuildingType;
   } | null;
 
   if (!body?.imageBase64 || !body.rooms || !body.projectId) {
@@ -54,6 +57,8 @@ export async function POST(req: NextRequest) {
       style: body.style ?? 'modern',
       quality: body.quality ?? 'fast',
       furniture: body.furniture ?? 'none',
+      lighting: body.lighting,
+      buildingType: body.buildingType,
     });
 
     // Storage 저장
