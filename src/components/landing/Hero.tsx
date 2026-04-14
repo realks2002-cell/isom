@@ -38,7 +38,7 @@ export async function Hero() {
               href="/login?mode=signup"
               className="inline-flex items-center gap-1.5 bg-neutral-900 px-6 py-3 text-[12px] font-bold uppercase tracking-wider text-white hover:bg-[#d43e76]"
             >
-              Start Free <ArrowRight size={14} />
+              Start Project <ArrowRight size={14} />
             </Link>
             <a
               href="#showcases"
