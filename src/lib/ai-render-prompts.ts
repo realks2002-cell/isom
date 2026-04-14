@@ -113,3 +113,41 @@ ${furniturePrompt}
 - Photorealistic quality with accurate material reflections and surface detail
 - Clean, professional architectural visualization style`;
 }
+
+export function buildDirectImagePrompt(
+  style: RenderStyle,
+  furniture: FurnitureLevel = 'none',
+  buildingType: BuildingType = 'apartment',
+  lighting?: LightingStyle
+): string {
+  const context = AI_CONTEXT[buildingType];
+  const lightingStyle = lighting ?? getDefaultLighting(buildingType);
+  const furniturePrompt = FURNITURE_BY_TYPE[buildingType][furniture];
+
+  return `Transform this floor plan image into a photorealistic 3D dollhouse view rendering.
+
+${context}
+
+This image is a floor plan (it could be a CAD drawing, sketch, or photo of a plan).
+Analyze the room layout, identify rooms from any text labels or spatial context.
+Render it as a photorealistic 3D interior visualization from an isometric dollhouse perspective.
+
+Style: ${STYLE_DESCRIPTIONS[style]}
+
+Requirements:
+- Render as a photorealistic 3D dollhouse view from above at isometric angle
+- Ceiling is removed, showing interior from above
+- Walls must have visible thickness (15-20cm cross-section visible from top)
+- Wall tops should show clean cross-section cut with dark/black color for contrast
+- Identify each room type from labels or context and apply appropriate materials:
+  - Kitchen/주방: tile floor, subway tile walls
+  - Bathroom/화장실: tile floor and walls
+  - Bedroom/침실: wood floor, painted walls
+  - Living room/거실: wood floor, painted walls
+  - Office/사무실: carpet tile floor, painted walls
+- If room labels are visible in the image, use them to determine room types
+${lightingStyle === 'mood' ? LIGHTING_PROMPTS.mood : LIGHTING_PROMPTS.practical}
+${furniturePrompt}
+- Photorealistic quality with accurate material reflections and surface detail
+- Clean, professional architectural visualization style`;
+}

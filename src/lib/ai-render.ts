@@ -3,6 +3,7 @@ import type { Room } from '@/types/room';
 import {
   buildMaterialPrompt,
   buildRenderPrompt,
+  buildDirectImagePrompt,
   type RenderStyle,
   type FurnitureLevel,
   type LightingStyle,
@@ -17,6 +18,7 @@ export interface RenderOptions {
   furniture?: FurnitureLevel;
   buildingType?: BuildingType;
   lighting?: LightingStyle;
+  directImage?: boolean;
 }
 
 const MODEL_FAST =
@@ -35,13 +37,18 @@ export async function renderWithNanoBanana(
   const ai = new GoogleGenAI({ apiKey });
   const model = options.quality === 'fast' ? MODEL_FAST : MODEL_HIGH;
   const bt = options.buildingType ?? 'apartment';
-  const prompt = buildRenderPrompt(
-    buildMaterialPrompt(rooms, bt),
-    options.style,
-    options.furniture ?? 'none',
-    bt,
-    options.lighting
-  );
+  let prompt: string;
+  if (options.directImage) {
+    prompt = buildDirectImagePrompt(options.style, options.furniture ?? 'none', bt, options.lighting);
+  } else {
+    prompt = buildRenderPrompt(
+      buildMaterialPrompt(rooms, bt),
+      options.style,
+      options.furniture ?? 'none',
+      bt,
+      options.lighting
+    );
+  }
 
   const response = await ai.models.generateContent({
     model,

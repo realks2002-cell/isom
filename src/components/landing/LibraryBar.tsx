@@ -8,8 +8,8 @@ const items = [
   },
   {
     icon: Layers,
-    title: 'DXF Auto-Parse',
-    desc: '건축사 DXF 그대로. 벽·문·창·레이어를 자동 인식해 3D 로 세워드립니다.',
+    title: 'DXF/DWG Auto-Parse',
+    desc: '건축사 DXF/DWG 그대로. 벽·문·창·레이어를 자동 인식해 3D 로 세워드립니다.',
   },
   {
     icon: Smartphone,

@@ -10,7 +10,7 @@ export function Footer() {
               ISOPLAN <span className="text-[#d43e76]">3D</span>
             </p>
             <p className="mt-3 text-[13px] leading-relaxed text-neutral-400">
-              DXF 한 장으로 시작하는 인테리어 시뮬레이션.
+              도면 한 장으로 시작하는 인테리어 시뮬레이션.
               <br />
               현장에서, 스마트폰으로, 실시간으로.
             </p>

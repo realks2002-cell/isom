@@ -30,8 +30,8 @@ export async function POST(req: NextRequest) {
     buildingType?: BuildingType;
   } | null;
 
-  if (!body?.imageBase64 || !body.rooms || !body.projectId) {
-    return NextResponse.json({ error: '잘못된 요청' }, { status: 400 });
+  if (!body?.imageBase64) {
+    return NextResponse.json({ error: '이미지가 필요합니다' }, { status: 400 });
   }
 
   // 월간 한도 체크 (현재 월 기준)
@@ -53,16 +53,18 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const resultBase64 = await renderWithNanoBanana(body.imageBase64, body.rooms, {
+    const resultBase64 = await renderWithNanoBanana(body.imageBase64, body.rooms ?? [], {
       style: body.style ?? 'modern',
       quality: body.quality ?? 'fast',
       furniture: body.furniture ?? 'none',
       lighting: body.lighting,
       buildingType: body.buildingType,
+      directImage: !body.rooms || body.rooms.length === 0,
     });
 
     // Storage 저장
-    const fileName = `${user.id}/${body.projectId}/${Date.now()}.png`;
+    const projectId = body.projectId || 'quick';
+    const fileName = `${user.id}/${projectId}/${Date.now()}.png`;
     const buffer = Buffer.from(resultBase64, 'base64');
     const upload = await supabase.storage
       .from('iso-renders')
