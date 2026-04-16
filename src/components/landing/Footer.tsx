@@ -35,7 +35,7 @@ export function Footer() {
               { label: 'Featured', href: '#featured' },
               { label: 'Showcases', href: '#showcases' },
               { label: 'Engine', href: '#engine' },
-              { label: 'Pricing', href: '#pricing' },
+              { label: 'Pricing', href: '/pricing' },
             ]}
           />
           <FooterColumn

@@ -23,7 +23,7 @@ export function TopBar({ isAuthed = false }: { isAuthed?: boolean }) {
           <a href="#engine" className="text-[13px] font-semibold uppercase tracking-wider text-neutral-700 hover:text-[#d43e76]">
             Engine
           </a>
-          <a href="#pricing" className="text-[13px] font-semibold uppercase tracking-wider text-neutral-700 hover:text-[#d43e76]">
+          <a href="/pricing" className="text-[13px] font-semibold uppercase tracking-wider text-neutral-700 hover:text-[#d43e76]">
             Pricing
           </a>
         </nav>

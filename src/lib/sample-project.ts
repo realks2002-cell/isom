@@ -1,0 +1,71 @@
+import type { FloorPlan } from '@/types/room';
+
+export const SAMPLE_FLOOR_PLAN: FloorPlan = {
+  buildingType: 'apartment',
+  rooms: [
+    {
+      id: 'r1', name: '거실',
+      points: [{ x: 0, y: 0 }, { x: 5.4, y: 0 }, { x: 5.4, y: 4.2 }, { x: 0, y: 4.2 }],
+      wallHeight: 2.4,
+      floor: { materialId: '', color: '#C9A96E', patternType: 'wood' },
+      wall: { materialId: '', color: '#F5F3EF', patternType: 'solid' },
+      baseboard: { materialId: '', color: '#FFFFFF', patternType: 'solid' },
+      door: { materialId: '', color: '#F0EBE3', patternType: 'solid' },
+    },
+    {
+      id: 'r2', name: '안방',
+      points: [{ x: 5.4, y: 0 }, { x: 9.2, y: 0 }, { x: 9.2, y: 4.2 }, { x: 5.4, y: 4.2 }],
+      wallHeight: 2.4,
+      floor: { materialId: '', color: '#B89B6A', patternType: 'wood' },
+      wall: { materialId: '', color: '#F5F3EF', patternType: 'solid' },
+      baseboard: { materialId: '', color: '#FFFFFF', patternType: 'solid' },
+      door: { materialId: '', color: '#F0EBE3', patternType: 'solid' },
+    },
+    {
+      id: 'r3', name: '주방',
+      points: [{ x: 0, y: 4.2 }, { x: 3.6, y: 4.2 }, { x: 3.6, y: 7.0 }, { x: 0, y: 7.0 }],
+      wallHeight: 2.4,
+      floor: { materialId: '', color: '#E8E0D0', patternType: 'tile' },
+      wall: { materialId: '', color: '#FFFFFF', patternType: 'tile' },
+      baseboard: { materialId: '', color: '#FFFFFF', patternType: 'solid' },
+      door: { materialId: '', color: '#F0EBE3', patternType: 'solid' },
+    },
+    {
+      id: 'r4', name: '작은방',
+      points: [{ x: 3.6, y: 4.2 }, { x: 6.4, y: 4.2 }, { x: 6.4, y: 7.0 }, { x: 3.6, y: 7.0 }],
+      wallHeight: 2.4,
+      floor: { materialId: '', color: '#B89B6A', patternType: 'wood' },
+      wall: { materialId: '', color: '#F5F3EF', patternType: 'solid' },
+      baseboard: { materialId: '', color: '#FFFFFF', patternType: 'solid' },
+      door: { materialId: '', color: '#F0EBE3', patternType: 'solid' },
+    },
+    {
+      id: 'r5', name: '화장실',
+      points: [{ x: 6.4, y: 4.2 }, { x: 9.2, y: 4.2 }, { x: 9.2, y: 5.8 }, { x: 6.4, y: 5.8 }],
+      wallHeight: 2.4,
+      floor: { materialId: '', color: '#D5CEC3', patternType: 'tile' },
+      wall: { materialId: '', color: '#E8E4DE', patternType: 'tile' },
+      baseboard: { materialId: '', color: '#D5CEC3', patternType: 'solid' },
+      door: { materialId: '', color: '#F0EBE3', patternType: 'solid' },
+    },
+    {
+      id: 'r6', name: '현관',
+      points: [{ x: 6.4, y: 5.8 }, { x: 9.2, y: 5.8 }, { x: 9.2, y: 7.0 }, { x: 6.4, y: 7.0 }],
+      wallHeight: 2.4,
+      floor: { materialId: '', color: '#B8AFA3', patternType: 'tile' },
+      wall: { materialId: '', color: '#F5F3EF', patternType: 'solid' },
+      baseboard: { materialId: '', color: '#FFFFFF', patternType: 'solid' },
+      door: { materialId: '', color: '#4A4A4A', patternType: 'solid' },
+    },
+  ],
+  doors: [
+    { id: 'd1', position: { x: 5.4, y: 2.1 }, direction: 'v', width: 0.9, connectsRooms: ['r1', 'r2'] },
+    { id: 'd2', position: { x: 1.8, y: 4.2 }, direction: 'h', width: 0.9, connectsRooms: ['r1', 'r3'] },
+    { id: 'd3', position: { x: 5.0, y: 4.2 }, direction: 'h', width: 0.8, connectsRooms: ['r1', 'r4'] },
+    { id: 'd4', position: { x: 7.8, y: 4.2 }, direction: 'h', width: 0.7, connectsRooms: ['r2', 'r5'] },
+  ],
+  windows: [
+    { id: 'w1', position: { x: 2.7, y: 0 }, direction: 'h', width: 2.0, roomId: 'r1' },
+    { id: 'w2', position: { x: 7.3, y: 0 }, direction: 'h', width: 1.6, roomId: 'r2' },
+  ],
+};

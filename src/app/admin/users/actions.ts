@@ -72,9 +72,14 @@ export async function updateUser(formData: FormData): Promise<ActionResult> {
 
   const admin = createAdminClient();
 
+  const purchasedRenders = Number(formData.get('purchasedRenders') || -1);
+
+  const profilePatch: Record<string, unknown> = { name, company_name: companyName, address, admin_memo: adminMemo };
+  if (purchasedRenders >= 0) profilePatch.purchased_renders = purchasedRenders;
+
   const { error: pe } = await admin
     .from('iso_profiles')
-    .update({ name, company_name: companyName, address, admin_memo: adminMemo })
+    .update(profilePatch)
     .eq('id', userId);
   if (pe) return { error: `프로필 저장 실패: ${pe.message}` };
 

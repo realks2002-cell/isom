@@ -7,6 +7,8 @@ import { FolderChip } from '@/components/dashboard/FolderChip';
 import { ProjectRow } from '@/components/dashboard/ProjectRow';
 import { FolderBreadcrumb } from '@/components/dashboard/FolderBreadcrumb';
 import type { Folder } from '@/types/project';
+import { SAMPLE_FLOOR_PLAN } from '@/lib/sample-project';
+import { OnboardingGuide } from '@/components/dashboard/OnboardingGuide';
 
 interface FolderRow {
   id: string;
@@ -61,7 +63,27 @@ export default async function DashboardPage({
     projectsQuery = projectsQuery.is('folder_id', null);
   }
 
-  const { data: projects } = await projectsQuery;
+  let { data: projects } = await projectsQuery;
+
+  // 첫 방문 — 프로젝트 0개이면 샘플 자동 생성
+  if (!folderId && (!projects || projects.length === 0)) {
+    const { count: totalCount } = await supabase
+      .from('iso_projects')
+      .select('id', { count: 'exact', head: true });
+    if ((totalCount ?? 0) === 0) {
+      await supabase.from('iso_projects').insert({
+        user_id: user.id,
+        name: '샘플 아파트 (체험용)',
+        rooms_data: SAMPLE_FLOOR_PLAN,
+      });
+      const { data: refreshed } = await supabase
+        .from('iso_projects')
+        .select('id, name, thumbnail_url, updated_at, folder_id')
+        .is('folder_id', null)
+        .order('updated_at', { ascending: false });
+      projects = refreshed;
+    }
+  }
 
   let folderCounts: Record<string, number> = {};
   if (!folderId && folders.length > 0) {
@@ -75,11 +97,48 @@ export default async function DashboardPage({
     }
   }
 
+  // 사용량 조회 (누적 횟수 충전 방식)
+  const { data: myProfile } = await supabase
+    .from('iso_profiles')
+    .select('purchased_renders')
+    .eq('id', user.id)
+    .single();
+  const renderLimit = myProfile?.purchased_renders ?? 0;
+  const { count: renderCount } = await supabase
+    .from('iso_renders')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', user.id);
+  const projectCount = (projects?.length ?? 0);
+
   return (
     <>
       <DashboardHeader email={user.email ?? ''} />
       <main className="flex-1 bg-neutral-50">
         <div className="mx-auto max-w-[1280px] px-6 py-10">
+          {/* 사용량 */}
+          <div className="mb-6 flex gap-4 flex-wrap">
+            <div className="rounded-xl border border-neutral-200 bg-white px-4 py-3 min-w-[140px]">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-neutral-400">렌더링 잔여</p>
+              <p className="mt-1 text-xl font-black">{Math.max(0, renderLimit - (renderCount ?? 0))}<span className="text-sm font-medium text-neutral-400">/{renderLimit}</span></p>
+              <div className="mt-1.5 h-1.5 rounded-full bg-neutral-100 overflow-hidden">
+                <div className={`h-full rounded-full ${(renderCount ?? 0) >= renderLimit ? 'bg-red-500' : 'bg-emerald-500'}`} style={{ width: `${Math.min(100, ((renderCount ?? 0) / Math.max(1, renderLimit)) * 100)}%` }} />
+              </div>
+            </div>
+            <div className="rounded-xl border border-neutral-200 bg-white px-4 py-3 min-w-[140px]">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-neutral-400">Projects</p>
+              <p className="mt-1 text-xl font-black">{projectCount}</p>
+            </div>
+            <a
+              href="/quick-render"
+              className="flex items-center gap-2 rounded-xl border border-dashed border-neutral-300 bg-white px-4 py-3 text-xs font-medium text-neutral-600 hover:border-neutral-400 hover:bg-neutral-50"
+            >
+              Quick Render →
+            </a>
+          </div>
+
+          {/* 온보딩 가이드 — 프로젝트 1개 이하일 때 표시 */}
+          {(projects?.length ?? 0) <= 1 && !folderId && <OnboardingGuide />}
+
           {/* Header */}
           <div className="mb-8 flex items-end justify-between border-b border-neutral-900 pb-4">
             <div>

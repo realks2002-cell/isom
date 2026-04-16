@@ -460,8 +460,8 @@ export function EditorCanvas({
         >
           <Undo2 size={14} />
         </button>
-        <div className="flex items-center gap-1.5 rounded-lg bg-white border border-neutral-200 px-2 py-1 shadow-sm">
-          <span className="text-[10px] text-neutral-500">벽</span>
+        <div className="flex items-center gap-1.5 rounded-lg bg-white border border-neutral-200 px-2 py-1 shadow-sm" style={{ minWidth: 120 }}>
+          <span className="text-[10px] text-neutral-500 shrink-0">벽</span>
           <input
             type="range"
             min={0.5}
@@ -469,9 +469,20 @@ export function EditorCanvas({
             step={0.1}
             value={floorPlan.rooms[0]?.wallHeight ?? 2.4}
             onChange={(e) => handleWallHeight(parseFloat(e.target.value))}
-            className="w-14 h-1 accent-neutral-600"
+            className="w-14 h-1 accent-neutral-600 shrink-0"
           />
-          <span className="text-[10px] text-neutral-500 w-6">{(floorPlan.rooms[0]?.wallHeight ?? 2.4).toFixed(1)}</span>
+          <input
+            type="number"
+            min={0.5}
+            max={3.5}
+            step={0.1}
+            value={(floorPlan.rooms[0]?.wallHeight ?? 2.4).toFixed(1)}
+            onChange={(e) => {
+              const v = parseFloat(e.target.value);
+              if (!isNaN(v) && v >= 0.5 && v <= 3.5) handleWallHeight(v);
+            }}
+            className="w-10 text-[10px] text-neutral-600 text-center border border-neutral-200 rounded px-0.5 py-0.5 shrink-0"
+          />
         </div>
         <button
           onClick={() => flush()}
@@ -512,7 +523,7 @@ export function EditorCanvas({
           className="flex items-center gap-1.5 rounded-lg bg-white text-neutral-900 border border-neutral-200 px-3 py-1.5 text-xs font-medium hover:bg-neutral-50 shadow-sm disabled:opacity-50"
           title="현장 사진으로 마감재 자동 분석"
         >
-          <ScanEye size={14} /> {analyzing ? '분석 중...' : 'AI 분석'}
+          <ScanEye size={14} /> {analyzing ? '분석 중...' : '컨셉/현장이미지'}
         </button>
         <button
           onClick={() => setAiOpen(true)}

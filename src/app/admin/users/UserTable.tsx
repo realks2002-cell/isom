@@ -15,6 +15,9 @@ export interface AdminUserRow {
   role: string;
   createdAt: string;
   daysSince: number;
+  renderPurchased: number;
+  renderUsed: number;
+  renderRemaining: number;
 }
 
 export function UserTable({ rows }: { rows: AdminUserRow[] }) {
@@ -54,6 +57,9 @@ export function UserTable({ rows }: { rows: AdminUserRow[] }) {
               <th className="px-3 py-2 text-left font-medium">비밀번호</th>
               <th className="px-3 py-2 text-left font-medium">상호명</th>
               <th className="px-3 py-2 text-left font-medium">주소</th>
+              <th className="px-3 py-2 text-right font-medium">구매</th>
+              <th className="px-3 py-2 text-right font-medium">사용</th>
+              <th className="px-3 py-2 text-right font-medium">잔여</th>
               <th className="px-3 py-2 text-left font-medium">생성일</th>
               <th className="px-3 py-2 text-left font-medium">가입기간</th>
               <th className="px-3 py-2 text-left font-medium">메모</th>
@@ -63,7 +69,7 @@ export function UserTable({ rows }: { rows: AdminUserRow[] }) {
           <tbody>
             {rows.length === 0 ? (
               <tr>
-                <td colSpan={9} className="px-3 py-8 text-center text-neutral-500">
+                <td colSpan={12} className="px-3 py-8 text-center text-neutral-500">
                   회원이 없습니다
                 </td>
               </tr>
@@ -94,6 +100,9 @@ export function UserTable({ rows }: { rows: AdminUserRow[] }) {
                   </td>
                   <td className="px-3 py-2">{r.companyName || '-'}</td>
                   <td className="px-3 py-2 max-w-[200px] truncate">{r.address || '-'}</td>
+                  <td className="px-3 py-2 text-right text-xs font-medium">{r.renderPurchased}</td>
+                  <td className="px-3 py-2 text-right text-xs font-medium">{r.renderUsed}</td>
+                  <td className={`px-3 py-2 text-right text-xs font-bold ${r.renderRemaining <= 0 ? 'text-red-600' : 'text-emerald-600'}`}>{r.renderRemaining}</td>
                   <td className="px-3 py-2 text-xs text-neutral-600">
                     {new Date(r.createdAt).toLocaleDateString('ko-KR')}
                   </td>
@@ -202,6 +211,9 @@ function UserModal({
           <Field label="이름" name="name" defaultValue={row?.name} />
           <Field label="상호명" name="companyName" defaultValue={row?.companyName} />
           <Field label="주소" name="address" defaultValue={row?.address} />
+          {mode === 'edit' && (
+            <Field label="구매 렌더링 횟수" name="purchasedRenders" type="number" defaultValue={String(row?.renderPurchased ?? 0)} />
+          )}
           <div>
             <label className="mb-1 block text-xs font-medium text-neutral-700">메모</label>
             <textarea

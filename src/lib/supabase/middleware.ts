@@ -30,25 +30,29 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const { pathname } = request.nextUrl;
-  const isAuthPage = pathname === '/';
 
-  // /admin 경로는 자체 쿠키 인증 — Supabase Auth 우회
-  if (pathname.startsWith('/admin')) {
+  // 공개 페이지 — 로그인 없이 접근 가능
+  const publicPaths = ['/', '/login', '/pricing', '/privacy', '/terms', '/quick-render', '/auth', '/api/auth'];
+  const isPublic =
+    publicPaths.some((p) => pathname === p || pathname.startsWith(p + '/')) ||
+    pathname.startsWith('/admin') ||
+    pathname.startsWith('/share/') ||
+    pathname.startsWith('/api/ai-render') ||
+    pathname.startsWith('/api/ai-analyze') ||
+    pathname.startsWith('/api/share') ||
+    pathname.startsWith('/api/renders');
+
+  if (isPublic) {
     return supabaseResponse;
   }
 
-  // redirect 시에도 세션 쓰기 보존: cookiesToSet이 이미 supabaseResponse에 반영되어 있으므로
-  // cookies 배열 전체를 복사하되 options(Name/Value) 구조를 유지
-  const makeRedirect = (to: URL) => {
-    const redirect = NextResponse.redirect(to);
+  // 비로그인 → 홈으로 리다이렉트
+  if (!user) {
+    const redirect = NextResponse.redirect(new URL('/', request.url));
     supabaseResponse.cookies.getAll().forEach((c) => {
       redirect.cookies.set(c);
     });
     return redirect;
-  };
-
-  if (!user && !isAuthPage) {
-    return makeRedirect(new URL('/', request.url));
   }
 
   return supabaseResponse;

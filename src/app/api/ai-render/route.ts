@@ -4,11 +4,11 @@ import { renderWithNanoBanana, type RenderQuality } from '@/lib/ai-render';
 import type { RenderStyle, FurnitureLevel, LightingStyle } from '@/lib/ai-render-prompts';
 import type { BuildingType } from '@/lib/building-types';
 import type { Room } from '@/types/room';
+import { addWatermark } from '@/lib/watermark';
 
 // Gemini 이미지 생성은 시간이 걸릴 수 있음
 export const maxDuration = 300;
 
-const MONTHLY_LIMIT = parseInt(process.env.AI_RENDER_MONTHLY_LIMIT || '100', 10);
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient();
@@ -28,26 +28,30 @@ export async function POST(req: NextRequest) {
     furniture?: FurnitureLevel;
     lighting?: LightingStyle;
     buildingType?: BuildingType;
+    refinementPrompt?: string;
   } | null;
 
   if (!body?.imageBase64) {
     return NextResponse.json({ error: '이미지가 필요합니다' }, { status: 400 });
   }
 
-  // 월간 한도 체크 (현재 월 기준)
-  const monthStart = new Date();
-  monthStart.setUTCDate(1);
-  monthStart.setUTCHours(0, 0, 0, 0);
+  // 잔여 렌더링 체크 (구매 횟수 - 총 사용 횟수)
+  const { data: profile } = await supabase
+    .from('iso_profiles')
+    .select('purchased_renders')
+    .eq('id', user.id)
+    .single();
+  const purchased = profile?.purchased_renders ?? 0;
 
   const { count } = await supabase
     .from('iso_renders')
     .select('id', { count: 'exact', head: true })
-    .eq('user_id', user.id)
-    .gte('created_at', monthStart.toISOString());
+    .eq('user_id', user.id);
+  const used = count ?? 0;
 
-  if ((count ?? 0) >= MONTHLY_LIMIT) {
+  if (used >= purchased) {
     return NextResponse.json(
-      { error: `월간 렌더링 한도(${MONTHLY_LIMIT}회) 초과` },
+      { error: `잔여 렌더링이 없습니다 (${used}/${purchased}회 사용)` },
       { status: 429 }
     );
   }
@@ -60,12 +64,16 @@ export async function POST(req: NextRequest) {
       lighting: body.lighting,
       buildingType: body.buildingType,
       directImage: !body.rooms || body.rooms.length === 0,
+      refinementPrompt: body.refinementPrompt,
     });
+
+    // 워터마크 비활성화 (결제 연동 후 활성화)
+    const finalBase64 = resultBase64;
 
     // Storage 저장
     const projectId = body.projectId || 'quick';
     const fileName = `${user.id}/${projectId}/${Date.now()}.png`;
-    const buffer = Buffer.from(resultBase64, 'base64');
+    const buffer = Buffer.from(finalBase64, 'base64');
     const upload = await supabase.storage
       .from('iso-renders')
       .upload(fileName, buffer, { contentType: 'image/png' });
@@ -75,20 +83,28 @@ export async function POST(req: NextRequest) {
       const { data } = supabase.storage.from('iso-renders').getPublicUrl(fileName);
       publicUrl = data.publicUrl;
 
-      await supabase.from('iso_renders').insert({
+      const { data: inserted } = await supabase.from('iso_renders').insert({
         user_id: user.id,
-        project_id: body.projectId,
+        project_id: body.projectId || null,
         storage_path: fileName,
         public_url: publicUrl,
         style: body.style ?? 'modern',
         quality: body.quality ?? 'fast',
+      }).select('id').single();
+
+      return NextResponse.json({
+        imageBase64: finalBase64,
+        url: publicUrl,
+        renderId: inserted?.id ?? null,
+        remaining: purchased - used - 1,
       });
     }
 
     return NextResponse.json({
-      imageBase64: resultBase64,
-      url: publicUrl,
-      remaining: MONTHLY_LIMIT - (count ?? 0) - 1,
+      imageBase64: finalBase64,
+      url: null,
+      renderId: null,
+      remaining: purchased - used - 1,
     });
   } catch (e) {
     return NextResponse.json(

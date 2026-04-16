@@ -19,6 +19,7 @@ export interface RenderOptions {
   buildingType?: BuildingType;
   lighting?: LightingStyle;
   directImage?: boolean;
+  refinementPrompt?: string;
 }
 
 const MODEL_FAST =
@@ -38,7 +39,9 @@ export async function renderWithNanoBanana(
   const model = options.quality === 'fast' ? MODEL_FAST : MODEL_HIGH;
   const bt = options.buildingType ?? 'apartment';
   let prompt: string;
-  if (options.directImage) {
+  if (options.refinementPrompt) {
+    prompt = `This is a previously rendered interior image. Please modify it according to the following instruction:\n\n"${options.refinementPrompt}"\n\nKeep the same room layout, camera angle, and overall style. Only apply the requested changes. Output a complete rendered image.`;
+  } else if (options.directImage) {
     prompt = buildDirectImagePrompt(options.style, options.furniture ?? 'none', bt, options.lighting);
   } else {
     prompt = buildRenderPrompt(

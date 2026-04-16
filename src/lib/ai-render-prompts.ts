@@ -111,7 +111,8 @@ Requirements:
 ${lightingStyle === 'mood' ? LIGHTING_PROMPTS.mood : LIGHTING_PROMPTS.practical}
 ${furniturePrompt}
 - Photorealistic quality with accurate material reflections and surface detail
-- Clean, professional architectural visualization style`;
+- Clean, professional architectural visualization style
+- Do NOT include any text, labels, room names, dimensions, or annotations in the rendered image. The output should be purely visual with no text overlay.`;
 }
 
 export function buildDirectImagePrompt(
@@ -149,5 +150,6 @@ Requirements:
 ${lightingStyle === 'mood' ? LIGHTING_PROMPTS.mood : LIGHTING_PROMPTS.practical}
 ${furniturePrompt}
 - Photorealistic quality with accurate material reflections and surface detail
-- Clean, professional architectural visualization style`;
+- Clean, professional architectural visualization style
+- Do NOT include any text, labels, room names, dimensions, or annotations in the rendered image. The output should be purely visual with no text overlay.`;
 }
